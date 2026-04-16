@@ -1,29 +1,21 @@
-## Build outputs
 bin/
 obj/
 
-## SQLite database
 *.db
 *.db-shm
 *.db-wal
 
-## Database dump with personal data / password hashes
 *.sql
 
-## Secrets / local config
 appsettings.json
 
-## User-specific files
 *.user
 *.suo
 .vs/
 
-## NuGet packages (wwwroot/lib)
 wwwroot/lib/
 
-## OS files
 .DS_Store
 Thumbs.db
 
-## Project documentation (academic submission)
 *.pdf
