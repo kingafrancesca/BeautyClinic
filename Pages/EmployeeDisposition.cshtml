@@ -1,0 +1,735 @@
+@page "{id}"
+@model BeautyClinic.Pages.EmployeeDispositionModel
+@{
+    ViewData["Title"] = "Dyspozycyjność pracownika";
+}
+
+<div class="employee-disposition-container">
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/CompanyView">
+                    <img src="~/images/logo-company.png" alt="BEAUTY CLINIC dla firm" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje konto" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="sign my-account" href="/EmployeeAccount">Moje konto</a>
+                        <a class="sign sign-out" href="/Logout">Wyloguj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="disposition-content">
+        <h2 class="welcome-title">TWOJA DYSPOZYCYJNOŚĆ</h2>
+        <div class="calendar-container">
+            <div class="calendar-base">
+                <div class="calendar-right">
+                    <div class="month-nav">
+                        <span class="nav-arrow" id="prev-month">←</span>
+                        <span class="month-display" id="month-display"></span>
+                        <span class="nav-arrow" id="next-month">→</span>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="disposition-modal" style="display: none;">
+        <div class="modal-content">
+            <div id="modal-date-info" style="font-family: 'Montserrat-Bold'; font-size: 1.1rem; margin: 10px 0 20px 0; text-align: left;"></div>
+            <form id="disposition-form" method="post" asp-page-handler="SaveDisposition">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Input.Date" id="modal-date" />
+                <div class="form-group">
+                    <label for="start-time">Godzina rozpoczęcia:</label>
+                    <select asp-for="Input.StartTime" id="start-time" class="form-control">
+                        <option value="">Wybierz godzinę</option>
+                        @for (int hour = 10; hour <= 15; hour++)
+                        {
+                            <option value="@(new TimeSpan(hour, 0, 0))">@hour:00</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Input.StartTime" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label for="end-time">Godzina zakończenia:</label>
+                    <select asp-for="Input.EndTime" id="end-time" class="form-control">
+                        <option value="">Wybierz godzinę</option>
+                        @for (int hour = 11; hour <= 16; hour++)
+                        {
+                            <option value="@(new TimeSpan(hour, 0, 0))">@hour:00</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Input.EndTime" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" asp-for="Input.IsUnavailable" id="is-unavailable" />
+                        Niedostępny
+                    </label>
+                    <span asp-validation-for="Input.IsUnavailable" class="text-danger"></span>
+                </div>
+                <button type="submit" class="save-button">Zapisz zmiany</button>
+                <button type="button" class="cancel-button" id="cancel-modal">Anuluj</button>
+                <div id="form-error" class="text-danger" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+</div>
+<footer class="footer">
+    <div class="author">
+        <p>ABOUT AUTHOR</p>
+        <span class="tooltip">Kinga Kinowska</span>
+    </div>
+</footer>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const prevMonth = document.getElementById('prev-month');
+            const nextMonth = document.getElementById('next-month');
+            const monthDisplay = document.getElementById('month-display');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const modal = document.getElementById('disposition-modal');
+            const cancelModal = document.getElementById('cancel-modal');
+            const dispositionForm = document.getElementById('disposition-form');
+            const startTimeSelect = document.getElementById('start-time');
+            const endTimeSelect = document.getElementById('end-time');
+            const isUnavailableCheckbox = document.getElementById('is-unavailable');
+            const formError = document.getElementById('form-error');
+            const modalDateInfo = document.getElementById('modal-date-info');
+            let currentDate = new Date();
+            const employeeId = '@Model.Employee?.Id';
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const minDate = new Date(today);
+            minDate.setDate(today.getDate() + 1);
+            const maxDate = new Date(today);
+            maxDate.setMonth(today.getMonth() + 2);
+
+            function formatDateToYMD(date) {
+                return date.toLocaleDateString('en-CA');
+            }
+
+            function getMonthYearDisplay(date) {
+                const months = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+                return `${months[date.getMonth()]} ${date.getFullYear()}`;
+            }
+
+            async function fetchDispositions(month, year) {
+                const response = await fetch(`/EmployeeDisposition/${employeeId}?handler=GetDispositions&month=${month}&year=${year}`, {
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+                if (!response.ok) throw new Error('Błąd pobierania dyspozycji');
+                return response.json();
+            }
+
+            async function renderCalendar() {
+                if (monthDisplay) monthDisplay.textContent = getMonthYearDisplay(currentDate);
+
+                if (calendarGrid) {
+                    calendarGrid.innerHTML = '';
+                    const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'So', 'Nd'];
+                    days.forEach(day => {
+                        const dayElement = document.createElement('div');
+                        dayElement.className = 'calendar-weekday';
+                        dayElement.textContent = day;
+                        dayElement.style.fontWeight = 'bold';
+                        dayElement.style.color = '#787878';
+                        dayElement.style.width = '75px';
+                        dayElement.style.marginBottom = '5px';
+                        calendarGrid.appendChild(dayElement);
+                    });
+
+                    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+                    const firstDayIndex = (firstDay.getDay() + 6) % 7;
+
+                    for (let i = 0; i < firstDayIndex; i++) {
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'calendar-day empty';
+                        calendarGrid.appendChild(emptyDiv);
+                    }
+
+                    const dispositions = await fetchDispositions(currentDate.getMonth() + 1, currentDate.getFullYear());
+                    console.log('Fetched dispositions for month/year:', currentDate.getMonth() + 1, currentDate.getFullYear(), dispositions);
+
+                    const todayStr = formatDateToYMD(today);
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const fullDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                        const dayElement = document.createElement('div');
+                        dayElement.style.display = 'flex';
+                        dayElement.style.alignItems = 'center';
+                        dayElement.style.justifyContent = 'center';
+                        dayElement.style.width = '72.5px';
+                        dayElement.style.height = '32.5px';
+                        dayElement.style.cursor = 'pointer';
+                        dayElement.textContent = day;
+
+                        const calendarDate = formatDateToYMD(fullDate);
+                        const disposition = dispositions.find(d => d.date === calendarDate);
+                        if (disposition) {
+                            dayElement.style.borderRadius = '10px';
+                            if (disposition.isUnavailable) {
+                                dayElement.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+                            } else {
+                                dayElement.style.backgroundColor = 'rgba(0, 255, 0, 0.3)';
+                            }
+                        }
+
+                        if (fullDate.toDateString() === today.toDateString()) {
+                            dayElement.className = 'calendar-today';
+                        } else if (fullDate < minDate || fullDate > maxDate) {
+                            dayElement.className = 'calendar-day grey';
+                            dayElement.style.pointerEvents = 'none';
+                        } else if (fullDate < today) {
+                            dayElement.className = 'calendar-day grey';
+                            dayElement.style.pointerEvents = 'none';
+                        } else {
+                            dayElement.className = 'calendar-day';
+                        }
+
+                        dayElement.addEventListener('click', () => {
+                            console.log(`Click on ${formatDateToYMD(fullDate)}, minDate: ${formatDateToYMD(minDate)}, maxDate: ${formatDateToYMD(maxDate)}`);
+                            if (fullDate >= minDate && fullDate <= maxDate) {
+                                const dateStr = formatDateToYMD(fullDate);
+                                const dayName = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'][fullDate.getDay()];
+                                document.getElementById('modal-date').value = dateStr;
+                                modalDateInfo.textContent = `${dayName}, ${fullDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                const existingDisposition = dispositions.find(d => d.date === dateStr);
+                                startTimeSelect.value = existingDisposition?.startTime || '';
+                                endTimeSelect.value = existingDisposition?.endTime || '';
+                                isUnavailableCheckbox.checked = existingDisposition?.isUnavailable || false;
+                                updateSelectState();
+                                modal.style.display = 'flex';
+                                console.log(`Clicked date: ${dateStr}, Disposition:`, existingDisposition);
+                            } else {
+                                console.log(`Date ${formatDateToYMD(fullDate)} is outside min/max range`);
+                            }
+                        });
+                        calendarGrid.appendChild(dayElement);
+                    }
+                }
+            }
+
+            function updateSelectState() {
+                const disabled = isUnavailableCheckbox.checked;
+                startTimeSelect.disabled = disabled;
+                endTimeSelect.disabled = disabled;
+                if (disabled) {
+                    startTimeSelect.value = '';
+                    endTimeSelect.value = '';
+                }
+                formError.style.display = 'none';
+                formError.textContent = '';
+            }
+
+            if (isUnavailableCheckbox) {
+                isUnavailableCheckbox.addEventListener('change', updateSelectState);
+            }
+
+            if (cancelModal) {
+                cancelModal.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                    formError.style.display = 'none';
+                    dispositionForm.reset();
+                });
+            }
+
+            if (dispositionForm) {
+                dispositionForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(dispositionForm);
+                    const isUnavailable = formData.get('Input.IsUnavailable') === 'true' || formData.get('Input.IsUnavailable') === 'on';
+                    let startTime = formData.get('Input.StartTime');
+                    let endTime = formData.get('Input.EndTime');
+
+                    console.log('Form Data:', {
+                        Date: formData.get('Input.Date'),
+                        StartTime: startTime,
+                        EndTime: endTime,
+                        IsUnavailable: isUnavailable
+                    });
+
+                    if (!isUnavailable && (!startTime || !endTime)) {
+                        formError.style.display = 'block';
+                        formError.textContent = 'Godziny rozpoczęcia i zakończenia są wymagane, jeśli pracownik jest dostępny.';
+                        return;
+                    }
+
+                    const dispositionData = {
+                        Date: formData.get('Input.Date'),
+                        StartTime: startTime || null,
+                        EndTime: endTime || null,
+                        IsUnavailable: isUnavailable
+                    };
+
+                    try {
+                        const response = await fetch(`/EmployeeDisposition/${employeeId}?handler=SaveDisposition`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': formData.get('__RequestVerificationToken')
+                            },
+                            body: JSON.stringify(dispositionData)
+                        });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error(`[${new Date().toLocaleString('pl-PL')}] Błąd serwera: ${response.status} ${errorText}`);
+                            let errorData;
+                            try {
+                                errorData = JSON.parse(errorText);
+                            } catch {
+                                errorData = { error: `Błąd HTTP: ${response.status}` };
+                            }
+                            formError.style.display = 'block';
+                            formError.textContent = `Błąd: ${errorData.error}${errorData.details ? ': ' + errorData.details : ''}`;
+                            return;
+                        }
+
+                        const result = await response.json();
+                        if (result.success) {
+                            modal.style.display = 'none';
+                            alert(result.message || 'Dyspozycja zapisana!');
+                            window.location.reload();
+                        } else {
+                            formError.style.display = 'block';
+                            formError.textContent = `Błąd: ${result.error}${result.details ? ': ' + result.details : ''}`;
+                        }
+                    } catch (error) {
+                        console.error(`[${new Date().toLocaleString('pl-PL')}] Błąd fetch: ${error}`);
+                        formError.style.display = 'block';
+                        formError.textContent = 'Wystąpił błąd podczas zapisywania zmian: ' + error.message;
+                    }
+                });
+            }
+
+            if (prevMonth) {
+                prevMonth.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                    renderCalendar();
+                });
+            }
+
+            if (nextMonth) {
+                nextMonth.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    renderCalendar();
+                });
+            }
+
+            renderCalendar();
+        });
+    </script>
+}
+
+<style>
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .employee-disposition-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        height: 93.5vh;
+        overflow: hidden;
+    }
+
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        background-color: #fff;
+        position: relative;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-calendar {
+        width: 26px;
+        height: 26px;
+        margin-right: 35px;
+    }
+
+    .nav-calendar:hover {
+        opacity: 0.75;
+        transition: transform 0.5s ease;
+    }
+
+    .nav-icon {
+        width: 26px;
+        height: 26px;
+        margin: 0 10px 2px 0;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px;
+        font-size: 14px;
+    }
+
+    .nav-link.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }
+    }
+
+    .footer {
+        bottom: 0;
+        z-index: 1000;
+        min-height: 20px;
+        padding: 0;
+        display: block;
+        position: relative;
+        margin-top: 0;
+        background-color: #fff;
+        border-top: 2px solid #000;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+
+    .disposition-content {
+        flex: 1;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .welcome-title {
+        font-family: 'Montserrat-Black';
+        font-size: 1.75rem;
+        color: #000;
+        margin: 15px auto;
+        text-align: center;
+    }
+
+    .calendar-container {
+        margin: 0 10px;
+        width: 100%;
+        height: 340px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-base {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 1);
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(255, 255, 255, 0.3);
+        height: 100%;
+        width: 700px;
+        border-radius: 10px;
+    }
+
+    .calendar-right {
+        flex: 1;
+        padding: 15px;
+        width: 100%;
+        height: 100%;
+    }
+
+    .month-nav {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 10px;
+        padding: 5px;
+    }
+
+    .nav-arrow {
+        color: #333333;
+        cursor: pointer;
+        font-size: 1.25rem;
+        width: 40px;
+        text-align: center;
+    }
+
+    .month-display {
+        font-size: 1.25rem;
+        color: #333333;
+        font-family: 'Montserrat-Bold';
+        padding: 0 10px;
+    }
+
+    .calendar-grid {
+        margin: 10px 0 0 0;
+        padding: 5px;
+        display: grid;
+        grid-template-columns: repeat(7, auto);
+        gap: 3px;
+        height: auto;
+    }
+
+    .calendar-weekday {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 3px;
+        background-color: transparent;
+        font-size: 1rem;
+        text-align: center;
+        font-weight: bold;
+        color: #777777;
+    }
+
+    .calendar-day {
+        padding: 3px;
+        background-color: transparent;
+        cursor: pointer;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .calendar-day.empty {
+        background: none;
+    }
+
+    .calendar-day.grey {
+        color: #777777;
+        background-color: transparent;
+        cursor: not-allowed;
+    }
+
+    .calendar-today {
+        padding: 3px;
+        text-align: center;
+        background-color: transparent;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Black';
+        color: rgb(34, 34, 34);
+    }
+
+    .calendar-day:hover, .calendar-today:hover {
+        font-size: 0.95rem;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 400px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-content h3 {
+        font-family: 'Montserrat-Bold';
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        font-family: 'Montserrat-Medium';
+        font-size: 0.75rem;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 5px;
+        font-family: 'Montserrat-Light';
+        font-size: 0.9rem;
+        border: 1px solid #515151;
+        border-radius: 4px;
+    }
+
+    .form-control:disabled {
+        background-color: #f0f0f0;
+    }
+
+    .save-button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Bold';
+        border: none;
+        cursor: pointer;
+        background-color: #000;
+        color: #fff;
+        border-radius: 5px;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .save-button:hover {
+        background-color: #3e3e3e;
+    }
+
+    .cancel-button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Bold';
+        border: none;
+        background-color: transparent;
+        color: #710000;
+        border-bottom: 1.5px solid #710000;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+        text-align: center;
+    }
+
+    .cancel-button:hover {
+        color: #3e3e3e;
+        border-color: #3e3e3e;
+    }
+
+    .text-danger {
+        color: red;
+        font-size: 0.8rem;
+    }
+
+    #
+</style>

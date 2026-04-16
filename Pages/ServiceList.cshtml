@@ -1,0 +1,375 @@
+@page
+@model BeautyClinic.Pages.ServiceListModel
+@{
+    ViewData["Title"] = "Lista usług";
+}
+
+<div>
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/CustomerView">
+                    <img src="~/images/logo.png" alt="BEAUTY CLINIC" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div>
+                    <a class="nav-link" asp-page="/ServiceList">
+                        <img src="~/images/calendar2.png" alt="Twój kalendarz" class="nav-calendar">
+                    </a>
+                </div>
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje wizyty" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="sign my-account" href="/MyAccount">Moje konto</a>
+                        <a class="sign sign-out" href="/Logout">Wyloguj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="service-body">
+        <div class="service-container">
+            <div class="service-content">
+                <h2 class="service-title">LISTA USŁUG</h2>
+                <ul class="service-list">
+                    @foreach (var service in Model.Services)
+                    {
+                        <li class="service-item" data-service-id="@service.Id">
+                            <div class="service-details">
+                                <div class="service-left">
+                                    <span>@service.Name</span>
+                                    <div class="service-description">
+                                        <span class="dots" onclick="toggleDescription(this)">...</span>
+                                        <span class="more">@service.Description <span class="less" onclick="toggleDescription(this)">zwiń</span></span>
+                                    </div>
+                                </div>
+                                <div class="service-right">
+                                    <div class="service-meta">
+                                        <div class="service-price">@service.Price zł</div>
+                                        <div class="service-duration">@service.DurationMinutes minut</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href='/AppointmentBooking?serviceId=@service.Id' class="btn-book">Umów</a>
+                        </li>
+                    }
+                </ul>
+        </div>
+    </div>
+</div>
+<footer class="footer">
+    <div class="author">
+        <p>ABOUT AUTHOR</p>
+        <span class="tooltip">Kinga Kinowska</span>
+    </div>
+</footer>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleDescription(element) {
+            const description = element.closest('.service-description');
+            description.classList.toggle("expanded");
+        }
+    </script>
+}
+
+<style>
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        background-color: #fff;
+        position: relative;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-calendar {
+        width: 26px;
+        height: 26px;
+        margin-right: 35px;
+    }
+
+    .nav-calendar:hover {
+        opacity: 0.75;
+        transition: transform 0.5s ease;
+    }
+
+    .nav-icon {
+        width: 26px;
+        height: 26px;
+        margin: 0 10px 2px 0;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px;
+        font-size: 14px;
+    }
+
+    .sign.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }
+    }
+
+    .service-body {
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        width: 100%;
+        overflow-y: auto;
+    }
+
+    .service-container {
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        height: 100%;
+        min-height: 83.5vh;
+        width: 100%;
+        padding: 20px 50px;
+    }
+    
+    .service-content {
+        display: flex;
+        flex-direction: column;
+        margin: auto;
+        padding: 10px 0 0 0;
+    }
+
+    .service-title {
+        text-align: center;
+        margin: 0 auto 5px auto;
+        font-size: 2.5rem;
+        font-family: 'Montserrat-Black';
+        color: #fff;
+        text-shadow: rgba(0, 0, 0, 0.2) 2px 2px 4px;
+    }
+
+    .service-list {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0 0 0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .service-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: rgba(255, 255, 255, 0.75);
+        padding: 0 30px;
+        border-top: 0.5px solid #979797;
+    }
+
+    .service-details {
+        display: flex;
+        width: 90%;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 20px 30px 10px 0;
+        border: 1px 0 solid #ddd;
+        font-family: 'Montserrat-Light';
+    }
+
+    .service-left {
+        max-width: 60%;
+    }
+
+    .service-description {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #000;
+        position: relative;
+        font-family: 'Montserrat-Thin';
+    }
+
+    .dots {
+        cursor: pointer;
+        color: #303030;
+        font-family: 'Montserrat-Medium';
+        font-size: 1rem;
+    }
+
+    .more {
+        display: none;
+    }
+
+    .less {
+        cursor: pointer;
+        color: #303030;
+        margin-left: 5px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+
+    .service-description.expanded .dots {
+        display: none;
+    }
+
+    .service-description.expanded .more {
+        display: inline;
+    }
+
+    .service-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        text-align: right;
+        min-width: 220px;
+        justify-content: flex-end;
+    }
+
+    .service-meta {
+        display: flex;
+        flex-direction: column;
+        text-align: right;
+    }
+
+    .service-price {
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .service-duration {
+        font-size: 13px;
+        color: #555;
+    }
+
+    .btn-book {
+        padding: 8px 16px;
+        background: #000;
+        color: #fff;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        transition: 0.3s;
+        white-space: nowrap;
+    }
+
+    .btn-book:hover {
+        background: #333;
+    }
+    
+    .footer {
+        bottom: 0;
+        z-index: 1000;
+        min-height: 20px;
+        padding: 0;
+        display: block;
+        position: relative;
+        margin-top: 0;
+        background-color: #fff;
+        border-top: 2px solid #000;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+</style>

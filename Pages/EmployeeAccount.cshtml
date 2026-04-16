@@ -1,0 +1,1592 @@
+@page
+@model BeautyClinic.Pages.EmployeeAccountModel
+@{
+    if (Model == null || Model.User == null)
+    {
+        ViewData["Title"] = "Błąd - Brak danych modelu";
+    }
+    else
+    {
+        ViewData["Title"] = "Konto Pracownika";
+    }
+}
+
+<div class="my-account-container">
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/CompanyView">
+                    <img src="~/images/logo-company.png" alt="BEAUTY CLINIC dla firm" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje konto" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="sign my-account" href="/EmployeeAccount">Moje konto</a>
+                        <a class="sign sign-out" href="/Logout">Wyloguj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="my-account-content">
+        <div class="sidebar">
+            <ul class="menu-list">
+                <li class="menu-item"><a href="#dashboard">Panel</a></li>
+                <li class="menu-item"><a href="#profile">Profil</a></li>
+                <li class="menu-item"><a href="#disposition">Dyspozycja</a></li>
+                <li class="menu-item"><a href="/Logout">Wyloguj się</a></li>
+            </ul>
+        </div>
+        <div class="dashboard">
+            <div class="section-content" id="dashboard">
+                <h2 class="welcome-title">Witaj, @(Model?.User?.FirstName ?? "Użytkowniku")!</h2>
+                <div class="widget-grid">
+                    <a href="#profile">
+                        <div class="widget">
+                            <img src="~/images/my-account.png" alt="Profil" class="widget-icon profile">
+                            <div class="widget-label">Profil</div>
+                        </div>
+                    </a>
+                    <a href="/EmployeeDisposition/@(Model.User?.Id)">
+                        <div class="widget">
+                            <img src="~/images/disposition.png" alt="Dyspozycja" class="widget-icon disposition">
+                            <div class="widget-label">Dyspozycja</div>
+                        </div>
+                    </a>
+                    <a href="/ServiceListEdit">
+                        <div class="widget">
+                            <img src="~/images/edit-service.png" alt="Zarządzaj usługami" class="widget-icon edit-service">
+                            <div class="widget-label">Zarządzaj usługami</div>
+                        </div>
+                    </a>
+                    <a href="#reset-password">
+                        <div class="widget">
+                            <img src="~/images/reset-password.png" alt="Zmień hasło" class="widget-icon change-password">
+                            <div class="widget-label">Zmień hasło</div>
+                        </div>
+                    </a>
+                    <a href="/DeleteAccount">
+                        <div class="widget">
+                            <img src="~/images/user-deleted.png" alt="Usuń konto" class="widget-icon delete">
+                            <div class="widget-label">Usuń konto</div>
+                        </div>
+                    </a>
+                    <a href="/Logout">
+                        <div class="widget">
+                            <img src="~/images/logout.png" alt="Wyloguj się" class="widget-icon sign-out">
+                            <div class="widget-label">Wyloguj się</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="section-content" id="profile" style="display: none;">
+                <div class="profile-container">
+                    <h2 class="profile-welcome-title">Witaj, @(Model?.User?.FirstName ?? "Użytkowniku")!</h2>
+                    <div class="profile-content">
+                        <form id="profile-form" method="post">
+                            <div class="profile-item">
+                                <label>Imię:</label>
+                                <input type="text" class="profile-value edit-input" name="FirstName" data-field="FirstName" value="@(Model?.User?.FirstName ?? "")" readonly>
+                            </div>
+                            <div class="profile-item">
+                                <label>Nazwisko:</label>
+                                <input type="text" class="profile-value edit-input" name="LastName" data-field="LastName" value="@(Model?.User?.LastName ?? "")" readonly>
+                            </div>
+                            <div class="profile-item">
+                                <label>Telefon:</label>
+                                <input type="text" class="profile-value edit-input" name="PhoneNumber" data-field="PhoneNumber" value="@(Model?.User?.PhoneNumber ?? "")" readonly>
+                            </div>
+                            <div class="profile-item">
+                                <label>Email:</label>
+                                <input type="text" class="profile-value edit-input" name="Email" data-field="Email" value="@(Model?.User?.Email ?? "")" readonly>
+                            </div>
+                            <button type="button" id="cancel-changes-profile-btn" class="cancel-button" style="display: none;">Anuluj</button>
+                            <button type="button" id="edit-profile-btn" class="edit-button">Edytuj</button>
+                            <button type="submit" id="save-profile-btn" class="save-button" style="display: none;">Zapisz</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content" id="reset-password" style="display: none;">
+                <div class="password-reset-container">
+                    <h3>ZMIEŃ HASŁO</h3>
+                    <div class="password-reset-content">
+                        <form id="password-reset-form" method="post" novalidate="novalidate">
+                            <div class="password-item">
+                                <label for="Input_Username" class="visually-hidden">Nazwa użytkownika</label>
+                                <input type="hidden" id="Input_Username" asp-for="Input.Username" value="@(Model?.Input?.Username ?? Model?.User?.Email ?? "unknown_user")" autocomplete="username" aria-label="Nazwa użytkownika" />
+                            </div>
+                            <div class="password-item">
+                                <label for="Input_OldPassword">Stare hasło:</label>
+                                <input id="Input_OldPassword" asp-for="Input.OldPassword" class="password-value edit-input" type="password" required autocomplete="current-password">
+                                <span asp-validation-for="Input.OldPassword" class="text-danger"></span>
+                            </div>
+                            <div class="password-item">
+                                <label for="Input_NewPassword">Nowe hasło:</label>
+                                <input id="Input_NewPassword" asp-for="Input.NewPassword" class="password-value edit-input" type="password" required autocomplete="new-password">
+                                <span asp-validation-for="Input.NewPassword" class="text-danger"></span>
+                            </div>
+                            <div class="password-item">
+                                <label for="Input_ConfirmNewPassword">Potwierdź hasło:</label>
+                                <input id="Input_ConfirmNewPassword" asp-for="Input.ConfirmNewPassword" class="password-value edit-input" type="password" required autocomplete="new-password">
+                                <span asp-validation-for="Input.ConfirmNewPassword" class="text-danger"></span>
+                            </div>
+                            <button type="submit" id="save-password-btn" class="save-button password-save-button">Zatwierdź zmiany</button>
+                            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="footer">
+    <div class="author">
+        <p>ABOUT AUTHOR</p>
+        <span class="tooltip">Kinga Kinowska</span>
+    </div>
+</footer>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            function updateView() {
+                const hash = window.location.hash || '#dashboard';
+                document.querySelectorAll('.section-content').forEach(section => {
+                    section.style.display = 'none';
+                });
+                const section = document.getElementById(hash.substring(1));
+                if (section) {
+                    section.style.display = 'block';
+                    if (hash === '#appointments') {
+                        renderCalendar();
+                    }
+                }
+            }
+
+            const editButton = document.getElementById('edit-profile-btn');
+            const saveButton = document.getElementById('save-profile-btn');
+            const cancelButton = document.getElementById('cancel-changes-profile-btn');
+            const profileForm = document.getElementById('profile-form');
+            const inputs = document.querySelectorAll('.edit-input');
+
+            if (editButton) {
+                editButton.addEventListener('click', () => {
+                    inputs.forEach(input => input.removeAttribute('readonly'));
+                    editButton.style.display = 'none';
+                    if (cancelButton) cancelButton.style.display = 'inline-block';
+                    if (saveButton) saveButton.style.display = 'inline-block';
+                });
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('click', () => {
+                    inputs.forEach(input => {
+                        input.setAttribute('readonly', 'true');
+                        input.value = input.defaultValue;
+                    });
+                    if (editButton) editButton.style.display = 'inline-block';
+                    cancelButton.style.display = 'none';
+                    if (saveButton) saveButton.style.display = 'none';
+                });
+            }
+
+            if (profileForm) {
+                profileForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(profileForm);
+                    const data = {
+                        FirstName: formData.get('FirstName'),
+                        LastName: formData.get('LastName'),
+                        PhoneNumber: formData.get('PhoneNumber'),
+                        Email: formData.get('Email')
+                    };
+                    try {
+                        const response = await fetch('/MyAccount?handler=UpdateProfile', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        if (response.ok) {
+                            inputs.forEach(input => {
+                                input.setAttribute('readonly', 'true');
+                                input.style.backgroundColor = 'transparent';
+                            });
+                            if (editButton) editButton.style.display = 'inline-block';
+                            if (saveButton) saveButton.style.display = 'none';
+                            alert('Profil został zaktualizowany!');
+                            window.location.reload();
+                        } else {
+                            const errorText = await response.text();
+                            alert('Błąd podczas aktualizacji profilu: ' + errorText);
+                        }
+                    } catch (error) {
+                        alert('Wystąpił błąd podczas zapisywania zmian.');
+                    }
+                });
+            }
+
+            const passwordForm = document.getElementById('password-reset-form');
+            const savePasswordBtn = document.getElementById('save-password-btn');
+            if (passwordForm && savePasswordBtn) {
+                savePasswordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(passwordForm);
+                    const data = {
+                        OldPassword: formData.get('Input.OldPassword') || '',
+                        NewPassword: formData.get('Input.NewPassword') || '',
+                        ConfirmNewPassword: formData.get('Input.ConfirmNewPassword') || '',
+                        Username: formData.get('Input.Username') || ''
+                    };
+                    fetch('/EmployeeAccount?handler=UpdatePassword', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(error => {
+                                throw new Error(error.error || `HTTP error! status: ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.success) {
+                            alert('Hasło zostało poprawnie zmienione');
+                            window.location.href = '/EmployeeAccount';
+                        } else {
+                            throw new Error(result.error || 'Nieznany błąd.');
+                        }
+                    })
+                    .catch(error => {
+                        alert(error.message);
+                    });
+                });
+            }
+
+            const prevYear = document.getElementById('prev-year');
+            const nextYear = document.getElementById('next-year');
+            const yearDisplay = document.getElementById('year-display');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const monthsRow = document.getElementById('months-row');
+            const calendarDate = document.getElementById('calendar-date');
+            const calendarDay = document.getElementById('calendar-day');
+            const appointmentsList = document.getElementById('appointments-list');
+            let currentDate = new Date();
+            let selectedDateForAppointments = new Date();
+            const allBookings = @Html.Raw(Json.Serialize(ViewData["AllBookings"])) || [];
+
+            function formatDateToYMD(date) {
+                return date.toLocaleDateString('en-CA');
+            }
+
+            function renderCalendar() {
+                if (yearDisplay) yearDisplay.textContent = currentDate.toLocaleString('pl-PL', { year: 'numeric' });
+                if (calendarDate) calendarDate.textContent = selectedDateForAppointments.getDate();
+                if (calendarDay) calendarDay.textContent = selectedDateForAppointments.toLocaleString('default', { month: 'short' });
+
+                if (calendarGrid) {
+                    while (calendarGrid.children.length > 7) {
+                        if (calendarGrid.lastChild) calendarGrid.removeChild(calendarGrid.lastChild);
+                    }
+                }
+                if (monthsRow) {
+                    monthsRow.innerHTML = '';
+                    const months = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+                    months.forEach((month, index) => {
+                        const monthElement = document.createElement('span');
+                        monthElement.textContent = month.substring(0, 3);
+                        monthElement.className = 'month-item';
+                        if (index === currentDate.getMonth()) {
+                            monthElement.style.fontFamily = 'Montserrat-Black';
+                            monthElement.style.color = '#232323';
+                            monthElement.style.fontSize = '0.9rem';
+                        }
+                        monthElement.addEventListener('click', () => {
+                            currentDate.setMonth(index);
+                            renderCalendar();
+                        });
+                        monthsRow.appendChild(monthElement);
+                    });
+                }
+
+                const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+                const firstDayIndex = (firstDay.getDay() + 6) % 7;
+
+                if (calendarGrid) {
+                    for (let i = 0; i < firstDayIndex; i++) {
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'calendar-day empty';
+                        calendarGrid.appendChild(emptyDiv);
+                    }
+
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const todayStr = formatDateToYMD(today);
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const fullDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                        const dayElement = document.createElement('div');
+                        dayElement.style.display = 'flex';
+                        dayElement.style.alignItems = 'center';
+                        dayElement.style.justifyContent = 'center';
+                        dayElement.style.width = '30px';
+                        dayElement.style.height = '30px';
+                        dayElement.style.cursor = 'pointer';
+                        dayElement.textContent = day;
+                        if (fullDate.toDateString() === today.toDateString()) {
+                            dayElement.className = 'calendar-today';
+                        } else if (fullDate < today) {
+                            dayElement.className = 'calendar-day grey';
+                            dayElement.style.pointerEvents = 'none';
+                        } else {
+                            dayElement.className = 'calendar-day';
+                        }
+                        const hasBooking = allBookings.some(b => b.date === formatDateToYMD(fullDate) && formatDateToYMD(fullDate) >= todayStr);
+                        if (hasBooking) {
+                            dayElement.style.border = '2px solid rgba(0, 0, 0, 0.6)';
+                            dayElement.style.borderRadius = '50%';
+                        }
+                        dayElement.addEventListener('click', () => {
+                            selectedDateForAppointments = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                            if (calendarDate) calendarDate.textContent = selectedDateForAppointments.getDate();
+                            if (calendarDay) calendarDay.textContent = selectedDateForAppointments.toLocaleString('default', { month: 'short' });
+                            renderCalendar();
+                            renderAppointments();
+                        });
+                        calendarGrid.appendChild(dayElement);
+                    }
+                }
+
+                renderAppointments();
+            }
+
+            function renderAppointments() {
+                if (appointmentsList) {
+                    appointmentsList.innerHTML = '';
+                    const selectedDate = formatDateToYMD(selectedDateForAppointments);
+                    const appointments = allBookings
+                        .filter(b => b.date === selectedDate)
+                        .map(b => ({
+                            id: b.id,
+                            date: b.date,
+                            time: b.time,
+                            name: b.serviceName,
+                            price: b.price,
+                            durationMinutes: b.durationMinutes,
+                            fullDate: new Date(`${b.date}T${b.time}`)
+                        }))
+                        .filter(b => !isNaN(b.fullDate.getTime()))
+                        .sort((a, b) => a.fullDate - b.fullDate);
+
+                    if (appointments.length > 0) {
+                        appointments.forEach(b => {
+                            const appointmentItem = document.createElement('div');
+                            appointmentItem.className = 'appointment-item';
+                            appointmentItem.setAttribute('data-booking-id', b.id);
+                            appointmentItem.setAttribute('data-date', b.date);
+                            appointmentItem.setAttribute('data-time', b.time);
+                            appointmentItem.setAttribute('data-service', b.name);
+                            appointmentItem.setAttribute('data-price', b.price);
+                            appointmentItem.setAttribute('data-duration', b.durationMinutes);
+                            appointmentItem.innerHTML = `<span style="font-size: 0.8rem; margin-right: 5px; font-family:'Montserrat-Black';">${b.fullDate.toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</span><span>${b.name || 'Brak nazwy'}</span>`;
+                            appointmentItem.addEventListener('click', () => showAppointmentManagement(b));
+                            appointmentsList.appendChild(appointmentItem);
+                        });
+                    } else {
+                        const noAppointments = document.createElement('div');
+                        noAppointments.className = 'appointment-item';
+                        noAppointments.textContent = 'Brak wizyt na dany dzień';
+                        appointmentsList.appendChild(noAppointments);
+                    }
+                }
+            }
+
+            function showAppointmentManagement(booking) {
+                const management = document.getElementById('appointment-management');
+                if (management) {
+                    const managementService = document.getElementById('management-service');
+                    const managementTime = document.getElementById('management-time');
+                    const managementDate = document.getElementById('management-date');
+                    const managementPrice = document.getElementById('management-price');
+                    const managementTimeSpan = document.getElementById('management-time-span');
+
+                    if (managementService) managementService.textContent = booking.name;
+                    if (managementTime) managementTime.textContent = booking.time;
+                    if (managementDate) {
+                        const date = new Date(booking.date);
+                        const days = ['nie', 'pon', 'wto', 'śro', 'czw', 'pią', 'sob'];
+                        const dayOfWeek = days[date.getDay()];
+                        const day = date.getDate();
+                        const months = ['sty', 'lut', 'mar', 'kwi', 'maj', 'czer', 'lip', 'sie', 'wrze', 'paź', 'lis', 'gru'];
+                        const month = months[date.getMonth()];
+                        managementDate.textContent = `⋅ ${dayOfWeek}, ${day} ${month}`;
+                    }
+                    if (managementPrice) managementPrice.textContent = `${booking.price.toFixed(2)} zł`;
+                    if (managementTimeSpan) {
+                        const startTime = new Date(`${booking.date}T${booking.time}`);
+                        const endTime = new Date(startTime.getTime() + booking.durationMinutes * 60000);
+                        managementTimeSpan.textContent = `${startTime.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })} - ${endTime.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`;
+                    }
+                    management.setAttribute('data-booking-id', booking.id);
+                    management.style.display = 'block';
+                    const calendarView = document.getElementById('calendar-view');
+                    const listView = document.getElementById('list-view');
+                    const toggle = document.getElementById('toggle');
+                    if (calendarView) calendarView.style.display = 'none';
+                    if (listView) listView.style.display = 'none';
+                    if (toggle) toggle.style.display = 'none';
+                }
+            }
+
+            if (calendarGrid && calendarGrid.children.length === 0) {
+                const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'So', 'Nd'];
+                days.forEach(day => {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'calendar-weekday';
+                    dayElement.textContent = day;
+                    dayElement.style.fontWeight = 'bold';
+                    dayElement.style.color = '#777777';
+                    calendarGrid.appendChild(dayElement);
+                });
+            }
+
+            renderCalendar();
+
+            if (prevYear) {
+                prevYear.addEventListener('click', () => {
+                    currentDate.setFullYear(currentDate.getFullYear() - 1);
+                    renderCalendar();
+                });
+            }
+
+            if (nextYear) {
+                nextYear.addEventListener('click', () => {
+                    currentDate.setFullYear(currentDate.getFullYear() + 1);
+                    renderCalendar();
+                });
+            }
+
+            const addEvent = document.getElementById('add-event');
+            if (addEvent) {
+                addEvent.addEventListener('click', () => {
+                    alert('Dodaj nową wizytę (funkcja do zaimplementowania).');
+                });
+            }
+
+            const calendarToggle = document.getElementById('calendar-toggle');
+            const listToggle = document.getElementById('list-toggle');
+            const calendarView = document.getElementById('calendar-view');
+            const listView = document.getElementById('list-view');
+
+            if (calendarToggle) {
+                calendarToggle.addEventListener('click', () => {
+                    if (calendarToggle && listToggle && calendarView && listView) {
+                        calendarToggle.classList.add('active');
+                        listToggle.classList.remove('active');
+                        calendarView.style.display = 'block';
+                        listView.style.display = 'none';
+                        const management = document.getElementById('appointment-management');
+                        if (management && management.style.display === 'block') {
+                            showAppointmentManagement({
+                                id: management.getAttribute('data-booking-id'),
+                                date: document.getElementById('management-date')?.textContent,
+                                time: document.getElementById('management-time')?.textContent,
+                                name: document.getElementById('management-service')?.textContent
+                            });
+                        }
+                    }
+                });
+            }
+
+            if (listToggle) {
+                listToggle.addEventListener('click', () => {
+                    if (calendarToggle && listToggle && calendarView && listView) {
+                        listToggle.classList.add('active');
+                        calendarToggle.classList.remove('active');
+                        calendarView.style.display = 'none';
+                        listView.style.display = 'block';
+                        const management = document.getElementById('appointment-management');
+                        if (management && management.style.display === 'block') {
+                            showAppointmentManagement({
+                                id: management.getAttribute('data-booking-id'),
+                                date: document.getElementById('management-date')?.textContent,
+                                time: document.getElementById('management-time')?.textContent,
+                                name: document.getElementById('management-service')?.textContent
+                            });
+                        }
+                    }
+                });
+            }
+
+            document.querySelectorAll('.appointment-edit').forEach(button => {
+                if (button) {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const item = button.parentElement;
+                        const booking = {
+                            id: item.getAttribute('data-booking-id'),
+                            date: item.getAttribute('data-date'),
+                            time: item.getAttribute('data-time'),
+                            name: item.getAttribute('data-service'),
+                            price: parseFloat(item.getAttribute('data-price')),
+                            durationMinutes: parseInt(item.getAttribute('data-duration'))
+                        };
+                        showAppointmentManagement(booking);
+                    });
+                }
+            });
+
+            const cancelAppointment = document.querySelector('.cancel-appointment');
+            if (cancelAppointment) {
+                cancelAppointment.addEventListener('click', () => {
+                    const bookingId = document.getElementById('appointment-management')?.getAttribute('data-booking-id');
+                    if (bookingId) {
+                        fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' })
+                            .then(() => {
+                                const management = document.getElementById('appointment-management');
+                                if (management) management.style.display = 'none';
+                                window.location.hash = '#dashboard';
+                                location.reload();
+                            })
+                            .catch(error => console.error('Błąd przy usuwaniu wizyty:', error));
+                    }
+                });
+            }
+
+            const editAppointment = document.querySelector('.edit-appointment');
+            if (editAppointment) {
+                editAppointment.addEventListener('click', () => {
+                    const bookingId = document.getElementById('appointment-management')?.getAttribute('data-booking-id');
+                    if (bookingId) {
+                        window.location.href = `/AppointmentBooking?bookingId=${bookingId}`;
+                    }
+                });
+            }
+
+            const goBack = document.querySelector('.go-back');
+            if (goBack) {
+                goBack.addEventListener('click', () => {
+                    const appointmentManagement = document.getElementById('appointment-management');
+                    if (appointmentManagement) {
+                        appointmentManagement.style.display = 'none';
+                    }
+                    const toggle = document.getElementById('toggle');
+                    if (toggle) toggle.style.display = 'flex';
+                    if (listToggle && listToggle.className === 'toggle-button active') {
+                        if (listView) listView.style.display = 'block';
+                    } else {
+                        if (calendarView) calendarView.style.display = 'block';
+                    }
+                });
+            }
+
+            document.querySelectorAll('.service-book-again').forEach(button => {
+                if (button) {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const item = button.parentElement;
+                        const serviceId = item.getAttribute('data-service-id');
+                        if (serviceId) {
+                            window.location.href = `/AppointmentBooking?serviceId=${serviceId}`;
+                        }
+                    });
+                }
+            });
+
+            window.addEventListener('popstate', () => {
+                updateView();
+            });
+
+            window.addEventListener('load', () => {
+                updateView();
+                if (calendarDate) calendarDate.textContent = selectedDateForAppointments.getDate();
+                if (calendarDay) calendarDay.textContent = selectedDateForAppointments.toLocaleString('default', { month: 'short' });
+            });
+        });
+    </script>
+}
+
+<style>
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        background-color: #fff;
+        position: relative;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-calendar {
+        width: 26px;
+        height: 26px;
+        margin-right: 35px;
+    }
+
+    .nav-calendar:hover {
+        opacity: 0.75;
+        transition: transform 0.5s ease;
+    }
+
+    .nav-icon {
+        width: 26px;
+        height: 26px;
+        margin: 0 10px 2px 0;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px;
+        font-size: 14px;
+    }
+
+    .nav-link.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }
+    }
+
+    .my-account-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        height: 93.5vh;
+        overflow: hidden;
+    }
+
+    .my-account-content {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        padding: 10px 0;
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .sidebar {
+        width: 20%;
+        background: rgba(0, 0, 0, 1);
+        margin: 20px 0;
+        padding: 20px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-list {
+        list-style: none;
+        padding: 45px 0 25px 0;
+        margin: 0;
+    }
+
+    .menu-item {
+        width: 100%;
+        margin-bottom: 25px;
+    }
+
+    .menu-item a {
+        color: #fff;
+        text-decoration: none;
+        font-family: 'Montserrat-Bold';
+        font-size: 1.1rem;
+    }
+
+    .menu-item a:hover {
+        color: #a7a7a7;
+    }
+
+    .dashboard {
+        width: 80%;
+        margin: 0 70px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .welcome-title {
+        font-family: 'Montserrat-ExtraBold';
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px #4d4d4d;
+        color: #fff;
+        margin-bottom: 40px;
+    }
+
+    .profile-welcome-title {
+        font-family: 'Montserrat-ExtraBold';
+        font-size: 2.5rem;
+        color: #fff;
+        text-shadow: 2px 2px 4px #4d4d4d;
+        margin: 40px auto;
+        text-align: center;
+    }
+
+    .section-content {
+        display: none;
+    }
+
+    .widget-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        padding: 20px 0;
+    }
+
+    .widget-grid a {
+        text-decoration: none;
+    }
+
+    .widget {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s;
+    }
+
+    .widget:hover {
+        transform: scale(1.05);
+    }
+
+    .widget-icon {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 10px;
+    }
+
+    .widget-icon.delete {
+        width: 45px;
+        height: 45px;
+        margin-bottom: 5px;
+    }
+
+    .widget-label {
+        font-family: 'Montserrat-Bold';
+        color: #fff;
+        font-size: 1rem;
+    }
+
+    .widget-label a {
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .footer {
+        bottom: 0;
+        z-index: 1000;
+        min-height: 20px;
+        padding: 0;
+        display: block;
+        position: relative;
+        margin-top: 0;
+        background-color: #fff;
+        border-top: 2px solid #000;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+
+    .profile-container {
+        margin: auto;
+        width: 65%;
+    }
+
+    .profile-content {
+        background: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        padding: 40px 40px 25px 40px;
+        margin: -15px auto 0 auto;
+        width: 100%;
+    }
+
+    .profile-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .profile-item label {
+        width: 100px;
+        margin-right: 10px;
+        font-weight: bold;
+        text-align: left;
+    }
+
+    .profile-value.edit-input {
+        flex-grow: 1;
+        padding: 5px;
+        font-family: 'Montserrat-Light';
+        font-size: 0.9rem;
+        border: none;
+        border-bottom: 1px solid #515151;
+        background: transparent;
+        transition: background-color 0.3s ease;
+    }
+
+    .profile-value.edit-input:not(:read-only) {
+        background-color: #f9f9f9;
+    }
+
+    .edit-button, .save-button {
+        position: relative;
+        left: 420px;
+        top: 5px;
+        padding: 5px 20px;
+        font-size: 0.7rem;
+        font-family: 'Montserrat-Bold';
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        background-color: #000;
+        color: #fff;
+    }
+
+    .edit-button:hover, .save-button:hover {
+        background-color: #3e3e3e;
+        color: #fff;
+    }
+
+    .cancel-button {
+        border: none;
+        background-color: transparent;
+        font-family: 'Montserrat-Bold';
+        border-bottom: #000 1.5px solid;
+        position: absolute;
+        left: 67%;
+        top: 77.5%;
+        padding: 0 7.5px;
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
+    
+    .cancel-button:hover {
+        color: #3e3e3e;
+        border-color: #3e3e3e;
+    }
+
+    #reset-password {
+        margin: auto 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .password-reset-container {
+        margin: auto;
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        padding: 10px 0 0 0;
+        width: 65%;
+    }
+
+    .password-reset-container h3 {
+        font-size: 1.5rem;
+        color: #000;
+        font-family: 'Montserrat-Bold';
+        margin: 15px 0;
+    }
+
+    .password-reset-content {
+        width: 100%;
+    }
+
+    .password-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Light';
+        padding: 0 40px;
+    }
+
+    .password-item label {
+        width: 120px;
+        margin-right: 10px;
+        font-weight: bold;
+        text-align: left;
+        font-size: 0.9rem;
+    }
+
+    .password-value.edit-input {
+        flex-grow: 1;
+        padding: 5px;
+        font-family: 'Montserrat-Light';
+        font-size: 0.9rem;
+        width: 250px;
+        border: none;
+        border-bottom: 1px solid #515151;
+        background: transparent;
+        transition: background-color 0.3s ease;
+    }
+
+    .password-save-button {
+        position: relative;
+        left: 0;
+        width: 100%;
+        padding: 15px 20px;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Bold';
+        border: none;
+        cursor: pointer;
+        background-color: #000;
+        color: #fff;
+        margin-top: 15px;
+        border-radius: 0;
+    }
+
+    .password-save-button:hover {
+        background-color: #3e3e3e;
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+
+    #disposition {
+        margin: auto;
+    }
+
+    .view-toggle {
+        display: flex;
+        position: absolute;
+        right: 12.25%;
+        top: 25px;
+        justify-content: flex-end;
+        color: #1f1f1f;
+    }
+    
+    .toggle-title {
+        padding: 5px;
+        font-size: 0.65rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .toggle-button {
+        font-family: 'Montserrat-Light';
+        background: none;
+        border: none;
+        cursor: pointer;
+        margin-left: 10px;
+        padding: 5px;
+        transition: transform 0.2s;
+        font-size: 0.65rem;
+    }
+
+    .toggle-button.active {
+        font-family: 'Montserrat-Medium';
+        color: #000;
+        font-size: 0.65rem;
+    }
+
+    .calendar-container {
+        margin: 25px 10px 0 10px;
+        width: 100%;
+        height: 365px;
+        overflow: hidden;
+    }
+
+    .calendar-base {
+        display: flex;
+        background: rgba(255, 255, 255, 0.5);
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        height: 100%;
+    }
+
+    .calendar-left {
+        width: 250px;
+        height: 100%;
+        background-color: #000;
+        color: white;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 50px 25px;
+    }
+
+    .num-date {
+        font-family: 'Montserrat-Black';
+        font-size: 90px;
+        width: 100%;
+        margin: 0 auto;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .day {
+        font-family: 'Montserrat-Black';
+        font-size: 1rem;
+        width: 100%;
+        margin: -15px auto 30px auto;
+        text-align: center;
+    }
+
+    .current-events {
+        font-family: 'Montserrat-Light';
+        font-size: 0.9rem;
+        margin: 5px 7px;
+    }
+
+    .event-line {
+        width: 100%;
+        height: 0.75px;
+        background-color: white;
+        margin: 1px 0;
+    }
+
+    .appointments-list {
+        width: 97.5%;
+        max-height: calc(100% - 170px);
+        color: white;
+        font-size: 0.75rem;
+        margin: 0 5px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #ffffff transparent;
+    }
+
+    .appointments-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .appointments-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .appointments-list::-webkit-scrollbar-thumb {
+        background-color: #ffffff;
+        border-radius: 10px;
+    }
+
+    .appointments-list::-webkit-scrollbar-thumb:hover {
+        background-color: #d3d3d3;
+    }
+
+    .appointment-item {
+        font-size: 0.6rem;
+        color: #cccccc;
+        padding: 10px 0 10px 2px;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .appointment-item:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .appointment-item span {
+        display: inline-block;
+    }
+
+    .add-event {
+        position: absolute;
+        top: 195px;
+        right: 30px;
+        width: 10px;
+        height: 10px;
+        padding: 0.3px 0.75px 0.3px 0.25px;
+        border-radius: 50%;
+        border: 1.1px solid white;
+        margin-top: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 10px;
+        font-family: 'Montserrat-Light';
+        background: none;
+        color: white;
+    }
+
+    .add-event:hover {
+        border-color: #b6b6b6;
+        color: #b6b6b6;
+    }
+
+    .calendar-right {
+        flex: 1;
+        width: 450px;
+        padding: 15px 38px 43px 38px;
+        height: 100%;
+    }
+
+    .appointments-list-container {
+        margin: 25px 0 0 20px;
+        width: 100%;
+        height: 365px;
+    }
+
+    .appointments-list-content {
+        background: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        height: 100%;
+        width: 720px;
+        padding: 25px;
+        position: relative;
+    }
+
+    .appointments-title {
+        position: fixed;
+        font-family: 'Montserrat-Medium';
+        color: #000;
+        text-align: left;
+        font-size: 0.9rem;
+        margin: 5px 5px 20px 5px;
+    }
+
+    .all-appointments-list {
+        margin-top: 35px;
+        max-height: 270px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.5) transparent;
+    }
+
+    .all-appointments-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .all-appointments-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .all-appointments-list::-webkit-scrollbar-thumb {
+        background-color: #ffffff rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+    }
+
+    .all-appointments-list::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(207, 207, 207, 0.5);
+    }
+
+    .all-appointment-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 15px;
+        border-radius: 5px;
+        color: #333;
+    }
+
+    .service-name {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        padding-left: 20px;
+        font-size: 0.75rem;
+        width: 423.48px;
+        font-family: 'Montserrat-Medium';
+    }
+
+    .management-header {
+        width: 100%;
+        display: flex;
+    }
+
+    .management-price-time {
+        text-align: center;
+        width: auto;
+    }
+
+    #management-price {
+        font-size:0.85rem;
+        font-family: 'Montserrat-Medium';
+    }
+
+    #management-time-span {
+        font-size: 0.6rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .management-date-time {
+        display: flex;
+        align-items: center;
+        width: auto;
+        padding-left: 5px;
+        gap: 5px;
+    }
+
+    .go-back {
+        background: transparent;
+        border: none;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        padding-bottom: 5px;
+        height: 20px;
+        font-size: 1.5rem;
+        color: #000;
+    }
+
+    .appointment-edit {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        border: none;
+        background-color: transparent;
+        color: #7f7f7f;
+        font-family: 'Montserrat-Medium';
+        font-size: 0.5rem;
+        height: 30px;
+        width: 110px;
+        margin: auto 20px;
+    }
+
+    .appointment-edit:hover {
+        color: #7f7f7f;
+        font-family: 'Montserrat-Bold';
+        font-size: 0.51rem;
+    }
+
+    .service-book-again {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        font-size: 0.6rem;
+        font-family: 'Montserrat-Medium';
+        color: #fff;
+        background: #000000;
+        border-radius: 5px;
+        border: #1e1e1e;
+        box-shadow: 0 2px 4px rgba(22, 22, 22, 0.2);
+        cursor: pointer;
+        padding: 10px;
+        margin: 25px;
+        transition: transform 0.2s;
+    }
+
+    .service-book-again:hover {
+        background: #333;
+    }
+
+    .date-details {
+        text-align: center;
+        width: 80px;
+        padding: 15px 20px;
+        border-right: #a7a7a7 1px solid;
+        font-size: 0.6rem;
+        font-family: 'Montserrat-Light';
+        color: #606060;
+    }
+
+    .date-details span {
+        display: block;
+    }
+
+    .date-detail.day {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        height: 1.75rem;
+        font-size: 1.75rem;
+        font-family: 'Montserrat-Medium';
+        color: #333;
+        margin: 1px;
+        padding: 0 auto;
+    }
+
+    .year-nav {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 5px;
+        font-size: 1rem;
+    }
+
+    .nav-arrow {
+        color: #777777;
+        cursor: pointer;
+        font-size: 1.2rem;
+        margin: 0 5px;
+    }
+
+    .year-display {
+        font-size: 1rem;
+        color: #777777;
+        font-family: 'Montserrat-Black';
+    }
+
+    .months-row {
+        display: flex;
+        max-width: 100%;
+        justify-content: space-around;
+        padding: 5px 0;
+        color: #777777;
+        font-size: 0.8rem;
+        border-bottom: #777777 0.5px solid;
+    }
+
+    .month-item {
+        cursor: pointer;
+        padding: 3px;
+    }
+
+    .calendar-grid {
+        margin: 10px -20px 0 0;
+        padding: 5px;
+        display: grid;
+        grid-template-columns: repeat(7, auto);
+        gap: 0.75px;
+        height: calc(100% - 60px);
+    }
+
+    .calendar-today {
+        padding: 3px;
+        text-align: center;
+        background-color: transparent;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Black';
+        color: rgb(34, 34, 34);
+    }
+
+    .calendar-day, .calendar-weekday {
+        padding: 3px;
+        background-color: transparent;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .calendar-day.empty {
+        background: none;
+    }
+
+    .calendar-day.grey {
+        color: #777777;
+        background-color: transparent;
+        cursor: not-allowed;
+    }
+
+    .calendar-day:hover, .calendar-today:hover {
+        font-size: 0.95rem;
+    }
+
+    .appointment-management-container {
+        margin: 0;
+        width: 100%;
+        height: 250px;
+    }
+
+    .appointment-management-content {
+        background: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        height: 100%;
+        width: 500px;
+        padding: 25px;
+        margin: auto;
+        position: relative;
+    }
+
+    .management-title {
+        font-family: 'Montserrat-Medium';
+        color: #000;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .management-details {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 140px;
+        margin: 5px 0;
+        padding: 15px;
+        font-size: 0.8rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .management-actions {
+        position: absolute;
+        bottom: 30px;
+        left: 62.5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 75%;
+        gap: 10px;
+    }
+
+    .cancel-appointment, .edit-appointment {
+        padding: auto 10px;
+        font-size: 0.75rem;
+        font-family: 'Montserrat-Bold';
+        border-radius: 5px;
+        background-color: white;
+        border: 1px solid #000;
+        cursor: pointer;
+        width: 175px;
+        height: 30px;
+    }
+
+    .cancel-appointment {
+        color: #710000;
+    }
+
+    .cancel-appointment:hover {
+        background-color: #710000;
+        border: #710000;
+        color: #fff;
+    }
+
+    .edit-appointment {
+        color: #000;
+    }
+
+    .edit-appointment:hover {
+        background-color: #000000;
+        color: #fff;
+    }
+</style>

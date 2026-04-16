@@ -1,0 +1,231 @@
+@page
+@model BeautyClinic.Pages.LoginModel
+@{
+    ViewData["Title"] = "Logowanie";
+}
+
+<div class="login-container">
+    <div class="nav-item left">
+        <a href="/">
+            <img src="~/images/arrow-left.png" alt="Powrót do strony startowej">
+        </a>
+    </div>
+    <div class="login">
+        <form method="post" class="login-form">
+            <h1 class="login-title">LOGOWANIE</h1>
+            <div class="login-content">
+                <div class="login-box">
+                    <input type="email" asp-for="Input.Email" class="login-input" id="login-email" required placeholder=" ">
+                    <label for="login-email" class="login-label">Email</label>
+                </div>
+                <div class="login-box">
+                    <input type="password" asp-for="Input.Password" class="login-input" id="login-pass" required placeholder=" ">
+                    <label for="login-pass" class="login-label">Hasło</label>
+                </div>
+            </div>
+            <button type="submit" class="login-button">Zaloguj</button>
+            <p class="login-register">
+                Nie masz konta?&nbsp;&nbsp;&nbsp;<a href="/Register">Zarejestruj się</a>
+            </p>
+        </form>
+    </div>
+</div>
+<div class="text-danger">
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <span>@Model.ErrorMessage</span>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<style>
+    .text-danger {
+        position: fixed; 
+        top: 80px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        text-align: center; 
+        width: 80%; 
+        z-index: 1001;
+    }
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow-x: hidden;
+    }
+
+    .login-container {
+        margin-top: 20px;
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .nav-item.left{
+        left: 45px;
+        top: 13px;
+        display: flex;
+        position: absolute;
+        align-items: center;
+    }
+
+    .nav-item.left a img {
+        width: 35px;
+        height: 35px;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .nav-item.left a img:hover {
+        opacity: 0.5;
+    }
+
+    .login {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        top: 50%;
+        min-height: calc(100vh - 60px);
+        padding: 20px;
+    }
+
+    .login-form {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 20px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    @@supports not (backdrop-filter: blur(10px)) {
+        .login-form {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    }
+
+    .login-title {
+        font-size: 2rem;
+        font-family: 'Montserrat-Medium';
+        color: #fff;
+        margin-bottom: 20px;
+    }
+
+    .login-content {
+        margin-bottom: 20px;
+    }
+
+    .login-box {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .login-input {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-bottom: 2px solid #ccc;
+        background: transparent;
+        font-size: 1rem;
+        color: #9f9f9f;
+        outline: none;
+        transition: border-bottom 0.3s;
+    }
+    .login-input:focus {
+        border-bottom: 2px solid #808080;
+    }
+
+    .login-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: #808080;
+        transition: 0.3s;
+        pointer-events: none;
+    }
+
+    .login-input:focus ~ .login-label,
+    .login-input:valid ~ .login-label {
+        top: -15px;
+        font-size: 0.9rem;
+        color: #000000;
+    }
+
+    .login-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #000000;
+        box-shadow: #000000 1px;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    .login-button:hover {
+        background-color: #a7a7a7;
+    }
+
+    .login-register {
+        margin-top: 20px;
+        font-size: 0.9rem;
+        color: #dedede;
+    }
+    .login-register a {
+        color: #000;
+        text-decoration: none;
+    }
+    .login-register a:hover {
+        color: #a7a7a7;
+        text-decoration: underline;
+    }
+
+    @@media (min-width: 768px) {
+        .login-form {
+            padding: 30px;
+        }
+        .login-title {
+            font-size: 2.5rem;
+        }
+        .login-input {
+            font-size: 1.1rem;
+        }
+    }
+
+    @@media (min-width: 1024px) {
+        body {
+            background-size: cover;
+        }
+    }
+
+    @@media (min-width: 1440px) {
+        body {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    }
+</style>

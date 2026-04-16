@@ -1,0 +1,302 @@
+@page
+@model BeautyClinic.Pages.RegisterModel
+@{
+    ViewData["Title"] = "Rejestracja";
+}
+
+<div class="register-container">
+    <div class="nav-item left">
+        <a href="/">
+            <img src="~/images/arrow-left.png" alt="Powrót do strony startowej">
+        </a>
+    </div>
+    <div class="register">
+        <form method="post" class="register-form">
+            <h1 class="register-title">REJESTRACJA</h1>
+            <div class="register-content">
+                <div class="register-box">
+                    <input type="email" asp-for="Input.Email" class="register-input" id="register-email" required placeholder=" ">
+                    <label for="register-email" class="register-label">Email</label>
+                </div>
+                <div class="register-box">
+                    <input type="password" asp-for="Input.Password" class="register-input" id="register-password" required placeholder=" ">
+                    <label for="register-password" class="register-label">Hasło</label>
+                </div>
+                <div class="register-box">
+                    <input type="first_name" asp-for="Input.FirstName" class="register-input" id="register-first_name" required placeholder=" ">
+                    <label for="register-first_name" class="register-label">Imię</label>
+                </div>
+                <div class="register-box">
+                    <input type="last_name" asp-for="Input.LastName" class="register-input" id="register-last_name" required placeholder=" ">
+                    <label for="register-last_name" class="register-label">Nazwisko</label>
+                </div>
+                <div class="register-box">
+                    <input type="phone_number" asp-for="Input.PhoneNumber" class="register-input" id="register-phone_number" required placeholder=" ">
+                    <label for="register-phone_number" class="register-label">Numer telefonu</label>
+                </div>
+                <div class="register-box">
+                    <select asp-for="Input.Role" class="register-role">
+                        <option value="" disabled selected id="role">
+                            <span class="option-label">Rola</span> 
+                        </option>
+                        <option value="Klient">
+                            <span class="option-label">Klient</span>
+                        </option>
+                        <option value="Pracownik">
+                            <span class="option-label">Pracownik</span>
+                        </option>
+                    </select>
+                    <span asp-validation-for="Input.Role" class="text-danger"></span>
+                </div>
+            </div>
+            <button type="submit" class="register-button">Zarejestruj</button>
+        </form>
+    </div>
+</div>
+<div class="text-danger">
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <span>@Model.ErrorMessage</span>
+    }
+</div>
+<style>
+    .text-danger {
+        position: fixed; 
+        top: 80px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        text-align: center; 
+        width: 80%; 
+        z-index: 1001;
+    }
+
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow-x: hidden;
+    }
+
+    .register-container {
+        margin-top: 20px;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        padding: 50px;
+    }
+
+    .nav-item.left{
+        left: 45px;
+        top: 15px;
+        display: flex;
+        position: absolute;
+        align-items: center;
+    }
+
+    .nav-item.left a img {
+        width: 35px;
+        height: 35px;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .nav-item.left a img:hover {
+        opacity: 0.5;
+    }
+
+    .register {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        top: 50%;
+        height: 75vh;
+    }
+
+    .register-form {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 15px;
+        width: 100%;
+        max-width: 425px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    @@supports not (backdrop-filter: blur(10px)) {
+        .register-form {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .register-box select.register-role_box {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    }
+
+    .register-title {
+        font-size: 1.5rem;
+        font-family: 'Montserrat-Medium';
+        color: #fff;
+        margin: 10px 0 20px 0;
+    }
+
+    .register-content {
+        padding: 10px 10px 15px 10px;
+    }
+
+    .register-box {
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    .register-input {
+        width: 100%;
+        padding: 7.5px;
+        border: none;
+        border-bottom: 2px solid #ccc;
+        background: transparent;
+        font-size: 0.75rem;
+        color: #9f9f9f;
+        outline: none;
+        transition: border-bottom 0.3s;
+    }
+    .register-input:focus {
+        border-bottom: 2px solid #808080;
+    }
+
+    .register-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: #808080;
+        transition: 0.3s;
+        pointer-events: none;
+    }
+
+    .register-input:focus ~ .register-label,
+    .register-input:valid ~ .register-label {
+        top: -6px;
+        font-size: 0.9rem;
+        color: #000000;
+    }
+
+    select,
+    ::picker(select) {
+    appearance: base-select;
+    }
+
+    select {
+        width: 100%;
+        border: none;
+        border-bottom: 2px solid #ccc;
+        background: rgba(255, 255, 255, 0.005);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        font-size: 1rem;
+        color: #9f9f9f;
+        border-radius: 5px 5px 0 0;
+        outline: none;
+        position: relative;
+        cursor: pointer;
+        padding: 10px;
+        transition: 0.4s;
+    }
+
+    select:hover,
+    select:focus {
+        background: rgba(36, 36, 36, 0.5);
+    }
+
+    select::picker-icon {
+        color: #ccc;
+        transition: 0.4s rotate;
+    }
+    select:open::picker(select) {
+        transform: translateY(100%);
+        bottom: calc(-1rem - 20px);
+    }
+
+    select:open::picker-icon {
+        rotate: 180deg;
+    }
+
+    ::picker(select) {
+        border: none;
+    }
+
+    option {
+        background: #ccc;
+        border-bottom: 0.75px solid rgb(128, 128, 128);
+        font-size: 11px;
+        color: #2c2c2c;
+    }
+
+    option:hover:not(option:disabled) {
+        background-color: rgb(140, 140, 140);
+    }
+
+    option:checked {
+        font-weight: 900;
+        color: #000000;
+    }
+
+    option::checkmark {
+        order: 1;
+        margin-left: auto;
+        content: "●";
+    }
+
+    .register-button {
+        width: 95%;
+        padding: 10px 5px;
+        margin: 0 5px 15px 5px;
+        background-color: #000000;
+        box-shadow: #000000 1px;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    .register-button:hover {
+        background-color: #a7a7a7;
+    }
+
+    @@media (min-width: 768px) {
+        .register-form {
+            padding: 20px;
+        }
+        .register-title {
+            font-size: 2.5rem;
+        }
+        .register-input {
+            font-size: 1.1rem;
+        }
+    }
+
+    @@media (min-width: 1024px) {
+        body {
+            background-size: cover;
+        }
+    }
+
+    @@media (min-width: 1440px) {
+        body {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    }
+</style>

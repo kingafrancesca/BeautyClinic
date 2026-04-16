@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - BeautyClinic</title>
+    
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/fonts/Montserrat_Complete/Fonts/WEB/css/montserrat.css" />
+    <link rel="stylesheet" href="~/fonts/Stardom_Complete/Fonts/WEB/css/stardom.css" />
+    <link rel="stylesheet" href="~/fonts/Satoshi_Complete/Fonts/WEB/css/satoshi.css" />
+</head>
+<body class="body">
+    <div class="container">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+    
+</body>
+</html>
+
+<style>
+    * {
+        box-sizing: border-box; 
+    }
+
+    body {
+        font-family: 'Montserrat-Medium';
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        position: relative;
+    }
+
+    main {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+</style>

@@ -1,0 +1,117 @@
+@page
+@model BeautyClinic.Pages.LogoutModel
+@{
+    ViewData["Title"] = "Wylogowano";
+}
+
+<div class="logout-container">
+    <div class="logout-content">
+        <div class="logout-form">
+            <h1 class="logout-title">WYLOGOWANO.</h1>
+            <p class="logout-message">
+                Przekierowanie za <span id="countdown">5</span> sekund... Jeśli nie działa, <a asp-page="/Index">kliknij tu</a>.
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let timeLeft = 5;
+            const countdown = document.getElementById('countdown');
+
+            const timer = setInterval(() => {
+                timeLeft--;
+                countdown.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    window.location.href = '/Index';
+                }
+            }, 1000);
+        });
+    </script>
+}
+
+<style>
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow-x: hidden;
+        position: relative;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .logout-container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        z-index: 1;
+    }
+
+    .logout-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 75vh;
+    }
+
+    .logout-form {
+        background: transparent;
+        padding: 20px;
+        width: 100%;
+        max-width: 600px;
+        text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .logout-title {
+        font-size: 2.5rem;
+        font-family: 'Montserrat-Bold';
+        color: #fff;
+        margin: 10px 0 20px 0;
+    }
+
+    .logout-message {
+        font-size: 0.75rem;
+        color: #fff;
+        margin: 10px 0;
+    }
+
+    .logout-message a {
+        color: #fff;
+        text-decoration: underline;
+        transition: color 0.3s;
+    }
+
+    .logout-message a:hover {
+        color: #7d7d7d;
+    }
+
+    @@media (min-width: 768px) {
+        .logout-form {
+            padding: 20px;
+        }
+        .logout-title {
+            font-size: 2.5rem;
+        }
+        .logout-message, .logout-timer, .logout-link {
+            font-size: 0.75rem;
+        }
+    }
+
+    @@supports not (backdrop-filter: blur(10px)) {
+        body {
+            background: linear-gradient(135deg, rgba(224, 247, 250, 0.5), rgba(193, 225, 236, 0.5));
+        }
+    }
+</style>

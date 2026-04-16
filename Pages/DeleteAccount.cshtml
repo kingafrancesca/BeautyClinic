@@ -1,0 +1,94 @@
+@page
+@model BeautyClinic.Pages.DeleteAccountModel
+@{
+    ViewData["Title"] = "Usuń konto";
+}
+
+<body>
+    <div class="logout-container">
+        <div class="logout-box">
+            <h2 class="logout-title">Czy na pewno chcesz usunąć konto?</h2>
+            <div class="button-group">
+                <form method="post" asp-page-handler="Cancel">
+                    <button type="submit" class="logout-button cancel">ANULUJ</button>
+                </form>
+                <form method="post" asp-page-handler="Confirm">
+                    <button type="submit" class="logout-button confirm">POTWIERDŹ</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+<style>
+        body {
+        height: 100vh;
+        width: 100%;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow-x: hidden;
+        position: relative;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .logout-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+        .logout-box {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin: 30vh auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            width: 450px;
+            height: 37vh;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .logout-title {
+            font-family: 'Montserrat-Medium';
+            font-size: 1.75rem;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+
+        .button-group {
+            left: 50%;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 10px;
+        }
+
+        .logout-button {
+            font-family: 'Montserrat-Bold';
+            font-size: 0.75rem;
+            color: #fff;
+            background-color: #000;
+            width: 150px;
+            height: 35px;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+    
+        .logout-button:hover {
+            background-color: rgba(31, 31, 33, 0.4);
+            border: 0.5px solid #313133;
+            transform: scale(1.05);
+        }
+</style>

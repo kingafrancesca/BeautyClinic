@@ -1,0 +1,455 @@
+﻿@page
+@model BeautyClinic.Pages.IndexModel
+@{
+    ViewData["Title"] = "Beauty Clinic";
+}
+
+<div>
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/">
+                    <img src="~/images/logo.png" alt="BEAUTY CLINIC" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje wizyty" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="sign login" href="/Login">Zaloguj</a>
+                        <a class="sign register" href="/Register">Zarejestruj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div>
+        <div class="carousel-container">
+            <button class="carousel-btn prev">❮</button>
+            <div class="carousel-slide">
+                <div class="carousel-item first">
+                    <div class="carousel-txt center">
+                        <h3>MEZOTERAPIA IGŁOWA</h3>
+                        <p>Naturalna odbudowa od wewnątrz.</p>
+                    </div>
+                </div>
+                <div class="carousel-item second">
+                    <div class="carousel-txt right">
+                        <h3>MANICURE HYBRYDOWY</h3>
+                        <p>Zadbane dłonie to Twoja wizytówka - my zadbamy o to najlepiej.</p>
+                    </div>
+                </div>
+                <div class="carousel-item third">
+                    <div class="carousel-txt center">
+                        <h3>ENDERMOLOGIA LPG</h3>
+                        <p>Nowoczesna droga do wymarzonej sylwetki.</p>
+                    </div>
+                </div>
+            </div>
+            <button class="carousel-btn next">❯</button>
+        </div>
+
+        <div class="action">
+            <div class="action-header">
+                <h2>DLA CHWILI ODPRĘŻENIA</h2>
+            </div>
+            <div class="action-section">
+                <div class="action-column">
+                    <h4>Profesjonalna obsługa</h4>
+                    <p>Nasi kosmetolodzy zadbają o każdy detal, zapewniając Ci komfort i satysfakcję.</p>
+                </div>
+                <div class="action-column">
+                    <h4>Wysoka jakość</h4>
+                    <p>Używamy tylko najlepszych produktów, aby Twoje zabiegi były skuteczne i bezpieczne.</p>
+                </div>
+                <div class="action-column">
+                    <h4>Indywidualne podejście</h4>
+                    <p>Dopasujemy usługi do Twoich potrzeb, oferując spersonalizowane rozwiązania.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="footer"></footer>
+        <div class="author">
+            <p>ABOUT AUTHOR</p>
+                <span class="tooltip">Kinga Kinowska</span>
+        </div>
+</footer>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentSlide = 0;
+            const slideContainer = document.querySelector('.carousel-slide');
+            const totalSlides = document.querySelectorAll('.carousel-item').length;
+            const prevBtn = document.querySelector('.carousel-btn.prev');
+            const nextBtn = document.querySelector('.carousel-btn.next');
+
+            if (!slideContainer || !prevBtn || !nextBtn) {
+                return;
+            }
+
+            function moveSlide(direction) {
+                currentSlide = (currentSlide + direction + totalSlides) % totalSlides;
+                const offset = -currentSlide * (100 / totalSlides);
+                slideContainer.style.transform = `translateX(${offset}%)`;
+            }
+
+            prevBtn.addEventListener('click', () => moveSlide(-1));
+            nextBtn.addEventListener('click', () => moveSlide(1));
+
+            slideContainer.style.transform = `translateX(0%)`;
+
+            function checkScroll() {
+                const actionSection = document.querySelector('.action-section');
+                if (actionSection) {
+                    const sectionPosition = actionSection.getBoundingClientRect().top;
+                    const screenPosition = window.innerHeight / 1.3;
+                    if (sectionPosition < screenPosition) {
+                        actionSection.style.opacity = '1';
+                        actionSection.style.transform = 'translateY(0)';
+                    }
+                }
+            }
+
+            window.addEventListener('scroll', checkScroll);
+            checkScroll(); 
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const footer = document.querySelector('.footer');
+            let lastScroll = 0;
+
+            window.addEventListener('scroll', () => {
+                const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                const windowHeight = window.innerHeight;
+                const documentHeight = document.documentElement.scrollHeight;
+
+                if (currentScroll > 100) {
+                    footer.classList.add('visible');
+                } else {
+                    footer.classList.remove('visible');
+                }
+
+                if (currentScroll + windowHeight >= documentHeight - 100) {
+                    footer.classList.remove('visible');
+                }
+
+                lastScroll = currentScroll;
+            });
+        });
+    </script>
+}
+
+<style>
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        position: relative;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden; 
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px; 
+        font-size: 14px;
+    }
+    
+    .sign.login {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+    
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }  
+    }
+
+    .carousel-container {
+        position: relative;
+        height: 90vh;
+        width: 100%;
+        padding: 0;
+        border-bottom: 5.5px solid #000;
+        margin: 0;
+        overflow: hidden; 
+    }
+
+    .carousel-slide {
+        display: flex;
+        height: 100%;
+        width: 300%;
+        transition: transform 0.5s ease;
+    }
+
+    .carousel-item.first {
+        background: url('/images/mezotherapy2.jpeg');
+        justify-content: center;
+        max-width: 100%;
+        height: auto;
+        align-items: center;
+        flex: 1;
+        box-sizing: border-box;
+        background-color: #f1f1f1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+
+    .carousel-item.second {
+        background: url('/images/manicure2.png');
+        justify-content: center;
+        max-width: 100%;
+        height: auto;
+        align-items: center;
+        flex: 1;
+        box-sizing: border-box;
+        background-color: #f1f1f1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+
+    .carousel-item.third {
+        background: url('/images/endermology2.png');
+        justify-content: center;
+        max-width: 100%;
+        height: auto;
+        align-items: center;
+        flex: 1;
+        box-sizing: border-box;
+        background-color: #f1f1f1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+
+
+    .carousel-txt.center {
+        text-align: center;
+    }
+
+    .carousel-txt.right {
+        position: absolute;
+        right: 100px;
+        text-align: right;
+    }
+
+    .carousel-txt h3 {
+        font-family:'Montserrat-Bold';
+        position: relative; 
+        color:#000;
+        font-size: 50px;
+        margin: 0;
+    }
+
+    .carousel-txt p {
+        font-family:'Montserrat-Bold';
+        position: relative; 
+        color:#000;
+    }
+
+    .carousel-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%); 
+        background-color: rgba(0, 0, 0, 0.5); 
+        color: white; 
+        border: none; 
+        font-size: 18px;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        z-index: 10;
+        cursor: pointer; 
+    }
+
+    .carousel-btn.prv {
+        left: 0;  
+        padding: 7px 10px 10px 7px; 
+    }
+
+    .carousel-btn.next {
+        right: 0;  
+        padding: 7px 7px 10px 10px; 
+    }
+
+    .action {
+        height:55vh;
+        background-color: #000;
+        color: #fff;
+        padding: 30px 0;
+        margin: 0;
+    }
+
+    .action-header {
+        text-align: left; 
+        margin: 0; 
+        padding: 0;
+    }
+
+    .action-header h2 {
+        font-family: 'Montserrat-ExtraBold',Impact, 'Arial Narrow Bold', sans-serif; 
+        font-size: 80px; 
+        margin:0;
+    }
+
+    .action-section {
+        text-align: left;
+        margin: 0 0 80px 0;
+        padding: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+        opacity: 0;
+        transform: translateY(50px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+    }   
+
+    .action-column {
+        flex: 1; 
+        padding: 0 15px;
+    }
+
+    .action-column h4 {
+        font-size: 20px;
+        font-family: 'Montserrat-Bold';
+        color: #fff;
+    }
+
+    .action-column p {
+        color: #fff;
+        line-height: 1;
+    }
+
+    .footer {
+        bottom: 0;
+        display: none;
+        z-index: 1000;
+        min-height: 80px;
+        padding: 20px 0;
+    }
+
+    .footer.visible {
+        display: block;
+        position: relative;
+        margin-top: 0;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+</style>

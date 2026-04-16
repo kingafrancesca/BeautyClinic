@@ -1,0 +1,617 @@
+@page
+@model BeautyClinic.Pages.ServiceListEditModel
+@{
+    ViewData["Title"] = "Edytuj usługi";
+}
+
+<div class="main-wrapper">
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/CompanyView">
+                    <img src="~/images/logo-company.png" alt="BEAUTY CLINIC dla firm" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje konto" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="sign my-account" href="/EmployeeAccount">Moje konto</a>
+                        <a class="sign sign-out" href="/Logout">Wyloguj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="service-body">
+        <div class="service-container">
+            <div class="service-content">
+                <h2 class="service-title">LISTA USŁUG</h2>
+                <ul class="service-list">
+                    @foreach (var service in Model.Services)
+                    {
+                        <li class="service-item" data-service-id="@service.Id">
+                            <div class="service-details">
+                                <div class="service-left">
+                                    <span>@service.Name</span>
+                                    <div class="service-description">
+                                        <span class="dots" onclick="toggleDescription(this)">...</span>
+                                        <span class="more">@service.Description <span class="less" onclick="toggleDescription(this)">zwiń</span></span>
+                                    </div>
+                                </div>
+                                <div class="service-right">
+                                    <div class="service-meta">
+                                        <div class="service-price">@service.Price zł</div>
+                                        <div class="service-duration">@service.DurationMinutes minut</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn-edit" onclick="openEditModal(@service.Id, '@(service.Name?.Replace("'", "\\'") ?? "")', '@(service.Description?.Replace("'", "\\'") ?? "")', @service.Price, @service.DurationMinutes)">Edytuj</button>
+                        </li>
+                    }
+                </ul>
+                <div class="add-service-container">
+                    <button class="btn-add-service" onclick="openAddModal()">
+                        <img src="~/images/add-service2.png" alt="Dodaj usługę" class="add-icon">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="service-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Edytuj usługę</h2>
+            <form id="service-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="service-id" name="Id" value="0" />
+                <div class="form-group">
+                    <label for="service-name">Nazwa usługi</label>
+                    <input type="text" id="service-name" name="Name" required maxlength="100" />
+                </div>
+                <div class="form-group">
+                    <label for="service-description">Opis</label>
+                    <textarea id="service-description" name="Description" rows="4" maxlength="500"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="service-price">Cena (zł)</label>
+                    <input type="number" id="service-price" name="Price" step="0.01" min="0" required />
+                </div>
+                <div class="form-group">
+                    <label for="service-duration">Czas trwania (minuty)</label>
+                    <input type="number" id="service-duration" name="DurationMinutes" min="1" required />
+                </div>
+                <button type="submit" class="btn-save">Zapisz zmiany</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="author">
+            <p>ABOUT AUTHOR</p>
+            <span class="tooltip">Kinga Kinowska</span>
+        </div>
+    </footer>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleDescription(element) {
+            const description = element.closest('.service-description');
+            description.classList.toggle("expanded");
+        }
+
+        function openEditModal(id, name, description, price, duration) {
+            document.getElementById('modal-title').textContent = 'Edytuj usługę';
+            document.getElementById('service-id').value = id;
+            document.getElementById('service-name').value = name;
+            document.getElementById('service-description').value = description;
+            document.getElementById('service-price').value = price;
+            document.getElementById('service-duration').value = duration;
+            document.getElementById('service-modal').style.display = 'block';
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').textContent = 'Dodaj nową usługę';
+            document.getElementById('service-form').reset();
+            document.getElementById('service-id').value = 0;
+            document.getElementById('service-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('service-modal').style.display = 'none';
+        }
+
+        document.getElementById('service-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const serviceId = formData.get('Id');
+            const isEdit = serviceId !== '0';
+            const url = isEdit ? '/ServiceListEdit?handler=Update' : '/ServiceListEdit?handler=Add';
+            const data = {
+                Id: serviceId,
+                Name: formData.get('Name'),
+                Description: formData.get('Description'),
+                Price: parseFloat(formData.get('Price')),
+                DurationMinutes: parseInt(formData.get('DurationMinutes'))
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': formData.get('__RequestVerificationToken')
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({
+                        error: `Błąd serwera: ${response.status}`,
+                        details: 'Nie udało się sparsować odpowiedzi serwera.'
+                    }));
+                    const errorMessage = errorData.error + (errorData.details ? (Array.isArray(errorData.details) ? `\nSzczegóły: ${errorData.details.join(', ')}` : `\nSzczegóły: ${errorData.details}`) : '');
+                    alert('Wystąpił błąd: ' + errorMessage);
+                    return;
+                }
+
+                const result = await response.json();
+                if (result.redirectUrl) {
+                    window.location.href = result.redirectUrl;
+                } else {
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert('Wystąpił błąd podczas zapisywania usługi: ' + error.message);
+            }
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('service-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+}
+
+<style>
+    .main-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        background-color: #fff;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1001;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-calendar {
+        width: 26px;
+        height: 26px;
+        margin-right: 35px;
+    }
+
+    .nav-calendar:hover {
+        opacity: 0.75;
+        transition: transform 0.5s ease;
+    }
+
+    .nav-icon {
+        width: 26px;
+        height: 26px;
+        margin: 0 10px 2px 0;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px;
+        font-size: 14px;
+    }
+
+    .sign.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }
+    }
+
+    .service-body {
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        width: 100%;
+        flex: 1;
+        margin-top: 55px;
+        overflow-y: auto;
+    }
+
+    .service-container {
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        min-height: 100%;
+        width: 100%;
+        padding: 20px 50px;
+        box-sizing: border-box;
+    }
+    
+    .service-content {
+        display: flex;
+        flex-direction: column;
+        margin: auto;
+        padding: 10px 0 20px 0;
+    }
+
+    .service-title {
+        text-align: center;
+        margin: 0 auto 5px auto;
+        font-size: 2.5rem;
+        font-family: 'Montserrat-Black';
+        color: #fff;
+        text-shadow: rgba(0, 0, 0, 0.2) 2px 2px 4px;
+    }
+
+    .service-list {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0 0 0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .service-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: rgba(255, 255, 255, 0.75);
+        padding: 0 30px;
+        border-top: 0.5px solid #979797;
+    }
+
+    .service-details {
+        display: flex;
+        width: 90%;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 20px 30px 10px 0;
+        border: 1px 0 solid #ddd;
+        font-family: 'Montserrat-Light';
+    }
+
+    .service-left {
+        max-width: 60%;
+    }
+
+    .service-description {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #000;
+        position: relative;
+        font-family: 'Montserrat-Thin';
+    }
+
+    .dots {
+        cursor: pointer;
+        color: #303030;
+        font-family: 'Montserrat-Medium';
+        font-size: 1rem;
+    }
+
+    .more {
+        display: none;
+    }
+
+    .less {
+        cursor: pointer;
+        color: #303030;
+        margin-left: 5px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+
+    .service-description.expanded .dots {
+        display: none;
+    }
+
+    .service-description.expanded .more {
+        display: inline;
+    }
+
+    .service-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        text-align: right;
+        min-width: 220px;
+        justify-content: flex-end;
+    }
+
+    .service-meta {
+        display: flex;
+        flex-direction: column;
+        text-align: right;
+    }
+
+    .service-price {
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .service-duration {
+        font-size: 13px;
+        color: #555;
+    }
+
+    .btn-edit {
+        padding: 8px 16px;
+        color: #515151;
+        border-radius: 6px;
+        text-decoration: underline;
+        font-size: 14px;
+        transition: 0.3s;
+        white-space: nowrap;
+        border: none;
+        cursor: pointer;
+        background-color: transparent;
+    }
+
+    .btn-edit:hover {
+        color: #000;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+    .add-service-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        border: #fff 0.5px solid;
+        border-top: 1px solid #5d5d5d;
+        border-radius: 0 0 5px 5px;
+        padding: 5px;
+        margin-bottom: 20px;
+    }
+
+    .add-service-container:hover {
+        background-color: rgba(255, 255, 255, 0.75);
+    }
+
+    .btn-add-service {
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .add-icon {
+        width: 25px;
+        height: 25px;
+        opacity: 0.6;
+    }
+
+    .btn-add-service:hover .add-icon {
+        opacity: 1;
+        transition: transform 2s ease;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1002;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 6.75% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        max-height: 100vh;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        font-family: 'Montserrat-Light';
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 25px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #000;
+        text-decoration: none;
+    }
+
+    #modal-title {
+        font-family: 'Montserrat-Black';
+        font-size: 1rem;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 10px;
+        margin-bottom: 3px;
+        font-family: 'Montserrat-Medium';
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        font-size: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: 'Montserrat-Light';
+    }
+
+    .form-group textarea {
+        resize: vertical;
+    }
+
+    .btn-save {
+        display: block;
+        width: 100%;
+        padding: 7px;
+        font-size: 10px;
+        font-family: 'Montserrat-Bold';
+        background-color: #000;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 7px;
+    }
+
+    .btn-save:hover {
+        background-color: #333;
+    }
+
+    .footer {
+        bottom: 0;
+        z-index: 1000;
+        min-height: 20px;
+        padding: 0;
+        display: block;
+        position: relative;
+        margin-top: 0;
+        background-color: #fff;
+        border-top: 2px solid #000;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+</style>

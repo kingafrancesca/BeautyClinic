@@ -1,0 +1,1095 @@
+@page "{bookingId:int?}"
+@model BeautyClinic.Pages.AppointmentBookingModel
+@{
+    ViewData["Title"] = Model.BookingId.HasValue ? "Edytuj wizytę" : "Rezerwacja wizyty";
+    var initialDate = Model.BookingId.HasValue && Model.Booking.Date != DateTime.MinValue ? Model.Booking.Date : DateTime.Today;
+    var initialTime = Model.BookingId.HasValue && Model.Booking.Time != default(TimeSpan) ? Model.Booking.Time.ToString(@"hh\:mm") : "";
+    var bookedSlotsData = Model.BookedSlots ?? new List<DateTime>();
+    var bookedSlotsJson = System.Text.Json.JsonSerializer.Serialize(bookedSlotsData);
+    var durationMinutes = Model.BookingId.HasValue && Model.Booking?.Service?.DurationMinutes != null ? Model.Booking.Service.DurationMinutes : (Model.Service?.DurationMinutes ?? 0);
+    var firstName = Model.Booking?.FirstName ?? "";
+    var lastName = Model.Booking?.LastName ?? "";
+    var phoneNumber = Model.Booking?.PhoneNumber ?? "";
+    var serviceId = Model.BookingId.HasValue ? Model?.Booking?.ServiceId : (Model.Service?.Id ?? 0);
+    var initialEmployeeId = Model.BookingId.HasValue && Model?.Booking?.EmployeeId != null ? Model.Booking.EmployeeId : Model?.SelectedEmployeeId;
+}
+
+<div class="appointment-booking-container">
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/CustomerView">
+                    <img src="~/images/logo.png" alt="BEAUTY CLINIC" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div>
+                    <a class="nav-link" asp-page="/ServiceList">
+                        <img src="~/images/calendar2.png" alt="Twój kalendarz" class="nav-calendar">
+                    </a>
+                </div>
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje wizyty" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="nav-link my-account" href="/MyAccount">Moje konto</a>
+                        <a class="nav-link sign-out" href="/Logout">Wyloguj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="appointment-booking-content">
+        <div class="appointment-booking-base">
+            <div class="booking-layout">
+                <div class="nav-item exit">
+                    <a href="/MyAccount#appointments">
+                        <img src="~/images/exit.png" alt="Powrót do strony z wizytami">
+                    </a>
+                </div>
+                <div class="calendar-time-container">
+                    <div class="calendar-container">
+                        <div class="calendar-base">
+                            <div class="calendar-right">
+                                <div class="year-nav">
+                                    <span class="nav-arrow" id="prev-year">←</span>
+                                    <span class="year-display" id="year-display">2025</span>
+                                    <span class="nav-arrow" id="next-year">→</span>
+                                </div>
+                                <div class="months-row" id="months-row"></div>
+                                <div class="calendar-grid" id="calendar-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="time-slots-container">
+                        <div class="time-slots-slide">
+                            <div class="time-slots" id="time-slots"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="appointment-management-container">
+                    <div class="appointment-management-content">
+                        <span id="displayed-date" style="display: none;">@initialDate.ToString("yyyy-MM-dd")</span>
+                        <div id="management-date">@initialDate.ToString("dddd, d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pl-PL"))</div>                        
+                        <div class="management-details">
+                            <span id="management-service">@(Model?.Booking?.Service?.Name ?? Model?.Service?.Name ?? "")</span>
+                            <div class="management-price-time">
+                                <div id="management-price">@(Model?.Booking?.Service?.Price > 0 ? $"{Model.Booking.Service.Price} zł" : (Model?.Service?.Price > 0 ? $"{Model.Service.Price} zł" : ""))</div>
+                                <span id="displayed-time" style="display: none;">@initialTime</span>
+                                <div id="management-time-span">@(Model.BookingId.HasValue && Model.Booking?.Time != default(TimeSpan) ? $"{Model?.Booking?.Time.ToString(@"hh\:mm")} - {Model?.Booking?.Time.Add(new TimeSpan(0, Model.Booking?.Service?.DurationMinutes ?? 0, 0)).ToString(@"hh\:mm")}" : "")</div>
+                            </div>
+                        </div>
+                        <div class="employee-select">
+                            <label for="employee-select">Pracownik:</label>
+                            <select id="employee-select" name="Booking.EmployeeId">
+                                @foreach (var employee in Model.Employees)
+                                {
+                                    <option value="@employee.Id" selected="@(employee.Id == initialEmployeeId)">@employee.FirstName @employee.LastName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" class="save-button">@(Model.BookingId.HasValue ? "Zapisz zmiany" : "Rezerwuj")</button>
+                </div>
+            </div>
+            <div style="display: none;">
+                <form id="booking-form" method="post" asp-page="/AppointmentBooking" asp-route-bookingId="@(Model?.Booking?.Id > 0 ? Model?.Booking?.Id.ToString() : null)">
+                    @Html.AntiForgeryToken()
+                    @if (Model?.Booking?.Id > 0)
+                    {
+                        <input type="hidden" name="bookingId" value="@Model.Booking.Id" />
+                    }
+                    <input type="hidden" asp-for="Booking.FirstName" value="@firstName" />
+                    <input type="hidden" asp-for="Booking.LastName" value="@lastName" />
+                    <input type="hidden" asp-for="Booking.PhoneNumber" value="@phoneNumber" />
+                    <input type="hidden" asp-for="Booking.ServiceId" value="@serviceId" />
+                    <input type="hidden" asp-for="Booking.Date" id="selected-date" />
+                    <input type="hidden" asp-for="Booking.Time" id="selected-time" />
+                    <input type="hidden" asp-for="Booking.EmployeeId" id="selected-employee-id" />
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="footer">
+    <div class="author">
+        <p>ABOUT AUTHOR</p>
+        <span class="tooltip">Kinga Kinowska</span>
+    </div>
+</footer>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const prevYear = document.getElementById('prev-year');
+            const nextYear = document.getElementById('next-year');
+            const yearDisplay = document.getElementById('year-display');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const monthsRow = document.getElementById('months-row');
+            const displayedDate = document.getElementById('displayed-date');
+            const displayedTime = document.getElementById('displayed-time');
+            const selectedDateInput = document.getElementById('selected-date');
+            const selectedTimeInput = document.getElementById('selected-time');
+            const selectedEmployeeIdInput = document.getElementById('selected-employee-id');
+            const timeSlots = document.getElementById('time-slots');
+            const form = document.getElementById('booking-form');
+            const saveButton = document.querySelector('.save-button');
+            const managementTimeSpan = document.getElementById('management-time-span');
+            const managementDate = document.getElementById('management-date');
+            const employeeSelect = document.getElementById('employee-select');
+            let currentDate = new Date();
+            let selectedDate = displayedDate ? new Date(displayedDate.textContent) : new Date();
+            let selectedTime = displayedTime.textContent || null;
+            let selectedEmployeeId = employeeSelect ? employeeSelect.value : "";
+            const bookedSlots = JSON.parse('@Html.Raw(bookedSlotsJson)');
+            const durationMinutes = @durationMinutes;
+            const serviceId = @serviceId;
+            const now = new Date();
+
+            if (serviceId === 0) {
+                alert('Błąd: Nieprawidłowy identyfikator usługi. Wybierz usługę ponownie.');
+                window.location.href = '/ServiceList';
+                return;
+            }
+
+            function formatDateToYMD(date) {
+                if (!date || isNaN(date.getTime())) {
+                    return '';
+                }
+                return date.toLocaleDateString('en-CA');
+            }
+
+            function isSlotBooked(date, time) {
+                if (!date || isNaN(new Date(date).getTime())) {
+                    return true;
+                }
+                const slotDateTime = new Date(`${formatDateToYMD(date)}T${time}:00`);
+                return bookedSlots.some(booked => {
+                    const bookedDateTime = new Date(booked);
+                    bookedDateTime.setMinutes(bookedDateTime.getMinutes() + durationMinutes);
+                    return slotDateTime >= new Date(booked) && slotDateTime < bookedDateTime;
+                });
+            }
+
+            async function fetchUpdatedSlots(date, employeeId) {
+                try {
+                    const response = await fetch(`/AppointmentBooking?handler=GetSlots&date=${encodeURIComponent(date)}&employeeId=${encodeURIComponent(employeeId)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+                    if (!response.ok) {
+                        return [];
+                    }
+                    const data = await response.json();
+                    return Array.isArray(data) ? data : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            async function areAllSlotsBooked(date, employeeId) {
+                if (!date || isNaN(date.getTime())) {
+                    return true;
+                }
+                const availableSlotsForDate = await fetchUpdatedSlots(formatDateToYMD(date), employeeId);
+                return availableSlotsForDate.length === 0;
+            }
+
+            async function getFirstAvailableSlot(date, employeeId) {
+                if (!date || isNaN(date.getTime())) {
+                    return null;
+                }
+                const day = formatDateToYMD(date);
+                const availableSlotsForDate = await fetchUpdatedSlots(day, employeeId);
+                if (availableSlotsForDate.length > 0) {
+                    const firstSlot = availableSlotsForDate.find(slot => {
+                        const slotDateTime = new Date(`${day}T${slot}:00`);
+                        return !isSlotBooked(date, slot) && (date.toDateString() !== now.toDateString() || slotDateTime > now);
+                    });
+                    if (firstSlot) {
+                        return { date: new Date(day), time: firstSlot };
+                    }
+                }
+                return null;
+            }
+
+            async function findNextAvailableDate(startDate, employeeId) {
+                let checkDate = new Date(startDate);
+                checkDate.setHours(0, 0, 0, 0);
+                const maxDate = new Date();
+                maxDate.setMonth(maxDate.getMonth() + 2);
+                while (checkDate <= maxDate) {
+                    if (!(await areAllSlotsBooked(checkDate, employeeId))) {
+                        return checkDate;
+                    }
+                    checkDate.setDate(checkDate.getDate() + 1);
+                }
+                return null;
+            }
+
+            async function renderCalendar() {
+                if (isNaN(currentDate.getTime())) {
+                    currentDate = new Date();
+                }
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                yearDisplay.textContent = currentDate.toLocaleString('pl-PL', { year: 'numeric' });
+
+                calendarGrid.innerHTML = '';
+                const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'So', 'Nd'];
+                days.forEach(day => {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'calendar-weekday';
+                    dayElement.textContent = day;
+                    dayElement.style.fontWeight = 'bold';
+                    dayElement.style.color = '#777777';
+                    calendarGrid.appendChild(dayElement);
+                });
+
+                monthsRow.innerHTML = '';
+                const months = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+                months.forEach((monthName, index) => {
+                    const monthElement = document.createElement('span');
+                    monthElement.textContent = monthName.substring(0, 3);
+                    monthElement.className = 'month-item';
+                    if (index === currentDate.getMonth()) {
+                        monthElement.style.fontFamily = 'Montserrat-Black';
+                        monthElement.style.color = '#232323';
+                        monthElement.style.fontSize = '0.7rem';
+                    }
+                    monthElement.addEventListener('click', () => {
+                        currentDate.setMonth(index);
+                        renderCalendar();
+                        renderTimeSlots();
+                    });
+                    monthsRow.appendChild(monthElement);
+                });
+
+                const firstDay = new Date(year, month, 1);
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDayIndex = (firstDay.getDay() + 6) % 7;
+
+                const today = new Date(now);
+                today.setHours(0, 0, 0, 0);
+                const maxDate = new Date(now);
+                maxDate.setMonth(now.getMonth() + 2);
+
+                for (let i = 0; i < firstDayIndex; i++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.className = 'calendar-day empty';
+                    calendarGrid.appendChild(emptyDay);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const fullDate = new Date(year, month, day);
+                    const dayElement = document.createElement('div');
+                    dayElement.style.display = 'flex';
+                    dayElement.style.alignItems = 'center';
+                    dayElement.style.justifyContent = 'center';
+                    dayElement.style.width = '40px';
+                    dayElement.style.height = '30px';
+                    dayElement.style.cursor = 'pointer';
+                    dayElement.textContent = day;
+
+                    if (fullDate < today || fullDate > maxDate) {
+                        dayElement.className = 'calendar-day grey';
+                        dayElement.style.pointerEvents = 'none';
+                    } else {
+                        const availableSlots = await fetchUpdatedSlots(formatDateToYMD(fullDate), selectedEmployeeId);
+                        if (availableSlots.length === 0) {
+                            dayElement.className = 'calendar-day grey';
+                            dayElement.style.pointerEvents = 'none';
+                        } else {
+                            dayElement.className = 'calendar-day';
+                        }
+                    }
+
+                    dayElement.addEventListener('click', async () => {
+                        selectedDate = new Date(year, month, day);
+                        selectedDateInput.value = formatDateToYMD(selectedDate);
+                        renderTimeSlots();
+                        const days = calendarGrid.getElementsByClassName('calendar-day');
+                        for (let d of days) {
+                            d.style.fontFamily = '';
+                            d.style.fontSize = '';
+                        }
+                        dayElement.style.fontFamily = 'Montserrat-Black';
+                        dayElement.style.fontSize = '0.75rem';
+                        updateManagementDate();
+                        const firstSlot = await getFirstAvailableSlot(selectedDate, selectedEmployeeId);
+                        if (firstSlot) {
+                            selectedTime = firstSlot.time;
+                            displayedTime.textContent = selectedTime;
+                            selectedTimeInput.value = selectedTime + ':00';
+                            updateManagementTimeSpan();
+                        } else {
+                            selectedTime = null;
+                            displayedTime.textContent = '';
+                            selectedTimeInput.value = '';
+                            managementTimeSpan.textContent = '';
+                        }
+                    });
+                    calendarGrid.appendChild(dayElement);
+                }
+
+                if (selectedDate.getFullYear() === year && selectedDate.getMonth() === month) {
+                    const selectedDay = selectedDate.getDate();
+                    const days = calendarGrid.getElementsByClassName('calendar-day');
+                    for (let d of days) {
+                        if (parseInt(d.textContent) === selectedDay && d.className !== 'calendar-day grey') {
+                            d.style.fontFamily = 'Montserrat-Black';
+                            d.style.fontSize = '0.75rem';
+                        }
+                    }
+                }
+            }
+
+            async function renderTimeSlots() {
+                if (!selectedDate || isNaN(selectedDate.getTime())) {
+                    timeSlots.innerHTML = '';
+                    return;
+                }
+                timeSlots.innerHTML = '';
+                const availableSlotsForDate = await fetchUpdatedSlots(formatDateToYMD(selectedDate), selectedEmployeeId);
+
+                if (availableSlotsForDate.length === 0) {
+                    const noSlotsMessage = document.createElement('div');
+                    noSlotsMessage.className = 'time-slot no-slots';
+                    noSlotsMessage.textContent = 'Brak dostępnych godzin dla wybranego dnia. Spróbuj wybrać inny dzień.';
+                    noSlotsMessage.style.color = '#a9a9a9';
+                    timeSlots.appendChild(noSlotsMessage);
+                    return;
+                }
+
+                availableSlotsForDate.forEach((time, index) => {
+                    const timeElement = document.createElement('div');
+                    timeElement.className = 'time-slot';
+                    timeElement.textContent = time;
+                    const [hours, minutes] = time.split(':').map(Number);
+                    const slotDateTime = new Date(`${formatDateToYMD(selectedDate)}T${time}:00`);
+                    
+                    if (isSlotBooked(selectedDate, time) || 
+                        (selectedDate.toDateString() === now.toDateString() && 
+                        (hours < now.getHours() || (hours === now.getHours() && minutes <= now.getMinutes())))) {
+                        timeElement.className += ' booked';
+                        timeElement.style.pointerEvents = 'none';
+                        timeElement.style.color = '#a9a9a9';
+                    } else {
+                        timeElement.addEventListener('click', () => {
+                            selectedTime = time;
+                            displayedTime.textContent = selectedTime;
+                            selectedTimeInput.value = selectedTime + ':00';
+                            const slots = timeSlots.getElementsByClassName('time-slot');
+                            for (let slot of slots) {
+                                slot.style.backgroundColor = '';
+                                slot.style.color = '';
+                            }
+                            timeElement.style.backgroundColor = '#c9c9c9';
+                            timeElement.style.color = '#000';
+                            updateManagementTimeSpan();
+                        });
+                        if (time === selectedTime) {
+                            timeElement.style.backgroundColor = '#c9c9c9';
+                            timeElement.style.color = '#000';
+                        }
+                    }
+                    timeSlots.appendChild(timeElement);
+                });
+            }
+
+            function updateManagementTimeSpan() {
+                if (selectedTime && durationMinutes > 0) {
+                    const startTime = selectedTime;
+                    const endTime = new Date(`1970-01-01T${selectedTime}:00Z`).getTime() + (durationMinutes * 60000);
+                    const endTimeStr = new Date(endTime).toISOString().substr(11, 5);
+                    managementTimeSpan.textContent = `${startTime} - ${endTimeStr}`;
+                } else {
+                    managementTimeSpan.textContent = '';
+                }
+            }
+
+            function updateManagementDate() {
+                if (selectedDate && !isNaN(selectedDate.getTime())) {
+                    managementDate.textContent = `${selectedDate.toLocaleDateString('pl-PL', { weekday: 'long' })}, ${selectedDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+                } else {
+                    managementDate.textContent = '';
+                }
+            }
+
+            saveButton.addEventListener('click', async () => {
+                if (!serviceId) {
+                    alert('Błąd: Brak identyfikatora usługi. Wybierz usługę ponownie.');
+                    window.location.href = '/ServiceList';
+                    return;
+                }
+                if (!selectedDate || isNaN(selectedDate.getTime()) || !selectedTime) {
+                    alert('Proszę wybrać datę i godzinę.');
+                    return;
+                }
+                if (!selectedEmployeeId) {
+                    alert('Proszę wybrać pracownika.');
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const data = {
+                    'Booking.Id': formData.get('Booking.Id') || '',
+                    'Booking.FirstName': formData.get('Booking.FirstName') || '',
+                    'Booking.LastName': formData.get('Booking.LastName') || '',
+                    'Booking.PhoneNumber': formData.get('Booking.PhoneNumber') || '',
+                    'Booking.ServiceId': formData.get('Booking.ServiceId') || '',
+                    'Booking.Date': selectedDateInput.value,
+                    'Booking.Time': selectedTimeInput.value,
+                    'Booking.EmployeeId': selectedEmployeeId
+                };
+
+                if (!data['Booking.FirstName'] || !data['Booking.LastName'] || !data['Booking.PhoneNumber'] || !data['Booking.ServiceId']) {
+                    alert('Wszystkie pola formularza muszą być wypełnione.');
+                    return;
+                }
+
+                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                const timeRegex = /^\d{2}:\d{2}:\d{2}$/;
+                if (!dateRegex.test(data['Booking.Date'])) {
+                    alert('Nieprawidłowy format daty.');
+                    return;
+                }
+                if (!timeRegex.test(data['Booking.Time'])) {
+                    alert('Nieprawidłowy format czasu.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(form.action || `/AppointmentBooking?bookingId=${data['Booking.Id']}`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': formData.get('__RequestVerificationToken')
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({
+                            error: `Błąd serwera: ${response.status}`,
+                            details: 'Nie udało się sparsować odpowiedzi serwera.'
+                        }));
+                        const errorMessage = errorData.error + (errorData.details ? (Array.isArray(errorData.details) ? `\nSzczegóły: ${errorData.details.join(', ')}` : `\nSzczegóły: ${errorData.details}`) : '');
+                        throw new Error(errorMessage);
+                    }
+
+                    const result = await response.json();
+                    if (result.redirectUrl) {
+                        window.location.href = result.redirectUrl;
+                    } else {
+                        throw new Error('Brak redirectUrl w odpowiedzi');
+                    }
+                } catch (error) {
+                    alert('Wystąpił błąd podczas zapisywania wizyty: ' + error.message);
+                }
+            });
+
+            employeeSelect.addEventListener('change', async () => {
+                selectedEmployeeId = employeeSelect.value;
+                selectedEmployeeIdInput.value = selectedEmployeeId;
+                
+                let firstAvailableDate = await findNextAvailableDate(now, selectedEmployeeId);
+                if (!firstAvailableDate) {
+                    firstAvailableDate = new Date(now);
+                    firstAvailableDate.setDate(now.getDate() + 1);
+                }
+                selectedDate = firstAvailableDate;
+                currentDate = new Date(selectedDate);
+                selectedDateInput.value = formatDateToYMD(selectedDate);
+                
+                await renderCalendar();
+                await renderTimeSlots();
+                
+                updateManagementDate();
+                const firstSlot = await getFirstAvailableSlot(selectedDate, selectedEmployeeId);
+                if (firstSlot) {
+                    selectedTime = firstSlot.time;
+                    displayedTime.textContent = selectedTime;
+                    selectedTimeInput.value = selectedTime + ':00';
+                    updateManagementTimeSpan();
+                } else {
+                    selectedTime = null;
+                    displayedTime.textContent = '';
+                    selectedTimeInput.value = '';
+                    managementTimeSpan.textContent = '';
+                }
+            });
+
+            let firstAvailableDate = await findNextAvailableDate(now, selectedEmployeeId);
+            if (!firstAvailableDate) {
+                firstAvailableDate = new Date(now);
+                firstAvailableDate.setDate(now.getDate() + 1);
+            }
+            selectedDate = firstAvailableDate || new Date();
+            currentDate = new Date(selectedDate);
+            const firstAvailable = await getFirstAvailableSlot(selectedDate, selectedEmployeeId);
+            if (firstAvailable) {
+                selectedDate = firstAvailable.date;
+                selectedDateInput.value = formatDateToYMD(selectedDate);
+                selectedTime = firstAvailable.time;
+                displayedTime.textContent = selectedTime;
+                selectedTimeInput.value = selectedTime + ':00';
+                await renderCalendar();
+                await renderTimeSlots();
+                updateManagementDate();
+                updateManagementTimeSpan();
+            } else {
+                selectedDateInput.value = formatDateToYMD(selectedDate);
+                await renderCalendar();
+                await renderTimeSlots();
+                updateManagementDate();
+                updateManagementTimeSpan();
+            }
+
+            prevYear.addEventListener('click', async () => {
+                currentDate.setFullYear(currentDate.getFullYear() - 1);
+                if (currentDate < new Date(now.getFullYear() - 1, 0, 1)) {
+                    currentDate.setFullYear(now.getFullYear());
+                }
+                await renderCalendar();
+                await renderTimeSlots();
+            });
+
+            nextYear.addEventListener('click', async () => {
+                currentDate.setFullYear(currentDate.getFullYear() + 1);
+                const maxYear = new Date(now);
+                maxYear.setFullYear(now.getFullYear() + 2);
+                if (currentDate > maxYear) {
+                    currentDate = maxYear;
+                }
+                await renderCalendar();
+                await renderTimeSlots();
+            });
+        });
+    </script>
+}
+
+<style>
+    .appointment-booking-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        height: 93.5vh;
+        overflow: hidden;
+    }
+
+    .appointment-booking-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: stretch;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .appointment-booking-base {
+        width: 100%;
+        height: 100%;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .booking-layout {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: 65%;
+        margin: auto;
+        height: 90%;
+        border-radius: 15px;
+        background-color: #fff;
+        padding: 0 21px;
+    }
+
+    .nav-item.exit {
+        position: absolute;
+        top: 10%;
+        right: 20%;
+        width: 20px;
+        height: 20px;
+        z-index: 1001;
+    }
+    .nav-item.exit img {
+        width: 13px;
+        height: 13px;
+    }
+    .nav-item.exit a:hover {
+        opacity: 0.3;
+        transition: transform 0.5s ease;   
+    }
+
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #e0f7fa, #c1e1ec);
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        background-color: #fff;
+        position: relative;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-calendar {
+        width: 26px;
+        height: 26px;
+        margin-right: 35px;
+    }
+
+    .nav-calendar:hover {
+        opacity: 0.75;
+        transition: transform 0.5s ease;
+    }
+
+    .nav-icon {
+        width: 26px;
+        height: 26px;
+        margin-right: 10px;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px;
+        font-size: 14px;
+    }
+
+    .nav-link.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .nav-link:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }
+    }
+
+    .footer {
+        bottom: 0;
+        z-index: 1000;
+        min-height: 20px;
+        padding: 0;
+        display: block;
+        position: relative;
+        margin-top: 0;
+        background-color: #fff;
+        border-top: 2px solid #000;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+
+    .calendar-time-container {
+        flex: 1;
+        margin: 0 auto;
+        padding: 0;
+        width: 400px;
+        height: 90%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .calendar-container {
+        margin: 0;
+        width: auto;
+        height: 85%;
+        overflow: hidden;
+        border-radius: 15px 15px 0 0;
+    }
+
+    .calendar-base {
+        display: flex;
+        background: rgba(255, 255, 255, 1);
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        height: 100%;
+    }
+
+    .calendar-right {
+        flex: 1;
+        width: 100%;
+        padding: 15px 38px 30px 38px;
+        height: 100%;
+    }
+
+    .year-nav {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 5px;
+        width: 100%;
+    }
+
+    .nav-arrow {
+        color: #777777;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin: 0 5px;
+    }
+
+    .year-display {
+        font-size: 0.85rem;
+        color: #777777;
+        font-family: 'Montserrat-Black';
+    }
+
+    .months-row {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        justify-content: space-around;
+        padding: 5px;
+        color: #777777;
+        font-size: 0.7rem;
+        border-bottom: #777777 0.5px solid;
+    }
+
+    .month-item {
+        cursor: pointer;
+        padding: 3px;
+    }
+
+    .month-item:hover {
+        color: #555555;
+    }
+
+    .calendar-grid {
+        margin: 10px 0 0 0;
+        padding: 5px;
+        display: grid;
+        grid-template-columns: repeat(7, auto);
+        gap: 0;
+        width: 100%;
+        height: calc(100% - 60px);
+    }
+
+    .calendar-day, .calendar-weekday {
+        text-align: center;
+        width: 40px;
+        height: auto;
+        padding: 3px;
+        background-color: transparent;
+        cursor: pointer;
+        font-size: 0.7rem;
+    }
+
+    .calendar-day.empty {
+        background: none;
+    }
+
+    .calendar-day.grey {
+        color: #777777;
+        background-color: transparent;
+        cursor: not-allowed;
+    }
+
+    .calendar-day:hover, .calendar-today:hover {
+        font-size: 0.75rem;
+    }
+
+    .time-slots-container {
+        flex: 0 0 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        padding: 2px 15px;
+        width: 400px;
+        height: 15%;
+        background-color: transparent;
+        border-radius: 0 0 15px 15px;
+        position: relative;
+        border-top: 1px solid #a9a9a9;
+    }
+
+    .time-slots-slide {
+        display: flex;
+        width: 100%;
+        padding: 5px;
+        white-space: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(125, 125, 125, 0.5) transparent;
+    }
+
+    .time-slots-slide::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .time-slots-slide::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .time-slots-slide::-webkit-scrollbar-thumb {
+        background-color: rgba(125, 125, 125, 0.5);
+        border-radius: 10px;
+    }
+
+    .time-slots-slide::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(100, 100, 100, 0.5);
+    }
+
+    .time-slots {
+        display: flex;
+        gap: 5px;
+        width: auto;
+    }
+
+    .time-slot {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: transparent;
+        border: 1px solid #a9a9a9;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.6rem;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .time-slot:hover {
+        background-color: #c9c9c9;
+    }
+
+    .time-slot.booked {
+        background-color: transparent;
+        color: #a9a9a9;
+        cursor: not-allowed;
+    }
+
+    .time-slot.no-slots {
+        background-color: transparent;
+        border: none;
+        cursor: default;
+    }
+
+    .save-button {
+        display: block;
+        width: 90%;
+        padding: 10px;
+        font-size: 0.9rem;
+        font-family: 'Montserrat-Bold';
+        background-color: #000;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px auto 0 auto;
+    }
+
+    .save-button:hover {
+        background-color: #333;
+    }
+
+    .appointment-management-container {
+        width: 400px;
+        height: 90%;
+        margin: auto;
+        display: flex;
+        padding: 5px 10px 5px 31px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #fff;
+    }
+
+    .appointment-management-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .management-details {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 95%;
+        margin: 10px 10px 0 10px;
+        padding: 10px;
+        background-color: #e2e2e2;
+        font-size: 0.65rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    #management-date {
+        font-size: 1.2rem;
+        text-align: center;
+        margin-bottom: 10px;
+        font-family: 'Montserrat-Bold';
+        padding: 0 10px;
+        width: 100%;
+    }
+
+    .management-price-time {
+        text-align: center;
+    }
+
+    #management-price {
+        font-size: 0.65rem;
+        font-family: 'Montserrat-Medium';
+    }
+
+    #management-time-span {
+        font-size: 0.4rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .employee-select {
+        width: 95%;
+        margin: 0 10px;
+        padding: 10px;
+        font-size: 0.65rem;
+        font-family: 'Montserrat-Light';
+        background-color: #e2e2e2;
+    }
+
+    .employee-select label {
+        display: block;
+        margin-bottom: 3px;
+        font-family: 'Montserrat-Light';
+        font-size: 0.65rem;
+    }
+
+    .employee-select select {
+        width: 100%;
+        padding: 5px;
+        font-size: 0.6rem;
+        border: 1px solid #a9a9a9;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        font-family: 'Montserrat-Light';
+    }
+
+    .employee-select select:hover {
+        background-color: #fff;
+    }
+</style>

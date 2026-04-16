@@ -1,0 +1,709 @@
+@page
+@model BeautyClinic.Pages.CompanyViewModel
+@{
+    ViewData["Title"] = "Beauty Clinic dla firm";
+}
+
+@Html.AntiForgeryToken()
+
+<div>
+    <header class="custom-header">
+        <div class="navbar">
+            <div class="nav-item center" style="font-family:'Montserrat-Light'">
+                <a class="nav-link" asp-page="/">
+                    <img src="~/images/logo-company.png" alt="BEAUTY CLINIC dla firm" class="nav-logo">
+                </a>
+            </div>
+            <div class="nav-item right">
+                <div class="dropdown">
+                    <span style="cursor: pointer;">
+                        <img src="~/images/user.png" alt="Moje wizyty" class="nav-icon">
+                    </span>
+                    <div class="dropdown-menu">
+                        <a class="sign my-account" href="/EmployeeAccount">Moje konto</a>
+                        <a class="sign sign-out" href="/Logout">Wyloguj</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="main-container">
+        <div class="main-content">
+            <div class="calendar-container" id="calendar-container">
+                <div class="calendar-header">
+                    <button id="prevWeek" onclick="changeWeek(-1)">&lt;</button>
+                    <h2 id="monthYear"></h2>
+                    <button id="nextWeek" onclick="changeWeek(1)">&gt;</button>
+                </div>
+                <div class="calendar" id="calendar">
+                    <div class="timeline">
+                        <div class="spacer"></div>
+                        <div class="time-marker">10:00</div>
+                        <div class="time-marker" style="grid-row: 13;">11:00</div>
+                        <div class="time-marker" style="grid-row: 25;">12:00</div>
+                        <div class="time-marker" style="grid-row: 37;">13:00</div>
+                        <div class="time-marker" style="grid-row: 49;">14:00</div>
+                        <div class="time-marker" style="grid-row: 61;">15:00</div>
+                        <div class="time-marker" style="grid-row: 73;">16:00</div>
+                        <div class="time-marker" style="grid-row: 84;">17:00</div>
+                    </div>
+                    <div class="days" id="days">
+                        @for (int i = 0; i < 7; i++)
+                        {
+                            var day = DateTime.Today.AddDays(i - (int)DateTime.Today.DayOfWeek + 1);
+                            var dayBookings = Model.Bookings.Where(b => b.Date.Date == day.Date).ToList();
+                            <div class="day @($"day-{day.DayOfWeek.ToString().ToLower()}")" data-date="@day.ToString("yyyy-MM-dd")">
+                                <div class="date">
+                                    <p class="date-num">@day.Day</p>
+                                    <p class="date-day">@day.ToString("ddd", new System.Globalization.CultureInfo("pl-PL"))</p>
+                                </div>
+                                <div class="events">
+                                    @foreach (var booking in dayBookings)
+                                    {
+                                        var startHour = 0;
+                                        var startMinutes = 0;
+                                        var endHour = 0;
+                                        var endMinutes = 0;
+                                        var duration = booking.Service?.DurationMinutes ?? 60;
+
+                                        string timeString = booking.Time.ToString() ?? "00:00";
+                                        if (TimeSpan.TryParse(timeString, out TimeSpan timeSpan))
+                                        {
+                                            startHour = timeSpan.Hours;
+                                            startMinutes = timeSpan.Minutes;
+                                            var endTime = timeSpan.Add(TimeSpan.FromMinutes(duration));
+                                            endHour = endTime.Hours;
+                                            endMinutes = endTime.Minutes;
+                                        }
+                                        else
+                                        {
+                                            <text>Warning: Invalid time format for booking ID @booking.Id (Time: @timeString)</text>
+                                            continue;
+                                        }
+
+                                        var gridRowStart = ((startHour - 10) * 12 + (int)Math.Floor(startMinutes / 5.0)) + 1;
+                                        var gridRowEnd = ((endHour - 10) * 12 + (int)Math.Floor(endMinutes / 5.0)) + 1;
+                                        <div class="event" 
+                                            style="grid-row: @gridRowStart / @gridRowEnd;" 
+                                            data-booking-id="@booking.Id"
+                                            onclick="showBookingDetails(@booking.Id)">
+                                            <p class="title">@booking.Service?.Name</p>
+                                            <p class="time">@($"{startHour:D2}:{startMinutes:D2}") - @($"{endHour:D2}:{endMinutes:D2}")</p>
+                                            <p class="client">@booking.FirstName @booking.LastName</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="booking-details" id="booking-details" style="display: none;">
+                <div class="management-header">
+                    <button class="go-back" onclick="hideBookingDetails()">←</button>
+                    <div class="management-date-time">
+                        <span id="management-time"></span>
+                        <span id="management-date"></span>
+                    </div>
+                </div>
+                <div class="management-client">Klient: <span id="management-client" style="font-family: 'Montserrat-Medium';"></span></div>
+                <div class="management-details">
+                    <span id="management-service"></span>
+                    <div class="management-price-time">
+                        <div id="management-price"></div>
+                        <div id="management-time-span"></div>
+                    </div>
+                </div>
+                <button type="button" class="cancel-button" onclick="cancelBooking()">Anuluj</button>
+            </div>
+        </div>
+    </div>
+    <footer class="footer visible">
+        <div class="author">
+            <p>ABOUT AUTHOR</p>
+            <span class="tooltip">Kinga Kinowska</span>
+        </div>
+    </footer>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let currentWeekOffset = 0;
+        const bookingsData = @Html.Raw(Json.Serialize(Model.Bookings ?? new List<BeautyClinic.Models.Booking>()));
+
+        function formatDateToYMD(date) {
+            return date.toLocaleDateString('en-CA');
+        }
+
+        function updateCalendar() {
+            const days = document.getElementById('days');
+            const monthYear = document.getElementById('monthYear');
+            if (!days || !monthYear) {
+                return;
+            }
+            days.innerHTML = '';
+            const startDate = new Date(Date.now() + currentWeekOffset * 7 * 24 * 60 * 60 * 1000);
+            startDate.setDate(startDate.getDate() - startDate.getDay() + 1);
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startDate);
+                day.setDate(startDate.getDate() + i);
+                const dayStr = formatDateToYMD(day);
+                const dayBookings = bookingsData.filter(b => {
+                    let bookingDate;
+                    if (b.date instanceof Date) {
+                        bookingDate = b.date;
+                    } else if (typeof b.date === 'string') {
+                        bookingDate = new Date(b.date);
+                    } else {
+                        return false;
+                    }
+                    if (isNaN(bookingDate.getTime())) {
+                        return false;
+                    }
+                    const bookingStr = formatDateToYMD(bookingDate);
+                    return bookingStr === dayStr;
+                }).filter(b => b.time && b.time.toString().trim() !== '');
+                const dayDiv = document.createElement('div');
+                dayDiv.className = `day day-${day.toLocaleString('pl-PL', { weekday: 'long' }).toLowerCase()}`;
+                dayDiv.setAttribute('data-date', dayStr);
+                dayDiv.innerHTML = `
+                    <div class="date">
+                        <p class="date-num">${day.getDate()}</p>
+                        <p class="date-day">${day.toLocaleString('pl-PL', { weekday: 'short' })}</p>
+                    </div>
+                    <div class="events">
+                        ${dayBookings.length > 0 ? dayBookings.map(booking => {
+                            const timeParts = (booking.time?.toString() ?? "00:00").split(':');
+                            const startHour = parseInt(timeParts[0]) || 0;
+                            const startMinutes = parseInt(timeParts[1]) || 0;
+                            const duration = booking.service?.durationMinutes ?? 60;
+                            const endTime = new Date(day.setHours(startHour, startMinutes));
+                            endTime.setMinutes(endTime.getMinutes() + duration);
+                            const endHour = endTime.getHours();
+                            const endMinutes = endTime.getMinutes();
+                            const gridRowStart = ((startHour - 10) * 12 + Math.floor(startMinutes / 5)) + 1;
+                            const gridRowEnd = ((endHour - 10) * 12 + Math.floor(endMinutes / 5)) + 1;
+                            return `<div class="event" style="grid-row: ${gridRowStart} / ${gridRowEnd};" data-booking-id="${booking.id}" onclick="showBookingDetails(${booking.id})">
+                                <p class="title">${booking.service?.name || 'Brak usługi'}</p>
+                                <p class="time">${startHour.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')} - ${endHour.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}</p>
+                                <p class="client">${booking.firstName || ''} ${booking.lastName || ''}</p>
+                            </div>`;
+                        }).join('') : ''}
+                    </div>
+                `;
+                days.appendChild(dayDiv);
+            }
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6);
+            const startMonth = startDate.toLocaleString('pl-PL', { month: 'long' });
+            const endMonth = endDate.toLocaleString('pl-PL', { month: 'long' });
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            if (startMonth !== endMonth) {
+                if(startYear !== endYear) {
+                    monthYear.textContent = `${startMonth} ${startYear} / ${endMonth} ${endYear}`;
+                }
+                else {
+                    monthYear.textContent = `${startMonth} / ${endMonth} ${startYear}`;
+                }
+            } else {
+                monthYear.textContent = `${startMonth} ${startYear}`;
+            }
+        }
+
+        function changeWeek(offset) {
+            currentWeekOffset += offset;
+            updateCalendar();
+        }
+
+        function showBookingDetails(bookingId) {
+            const calendarContainer = document.getElementById('calendar-container');
+            const details = document.getElementById('booking-details');
+            const managementTime = document.getElementById('management-time');
+            const managementDate = document.getElementById('management-date');
+            const managementClient = document.getElementById('management-client');
+            const managementService = document.getElementById('management-service');
+            const managementPrice = document.getElementById('management-price');
+            const managementTimeSpan = document.getElementById('management-time-span');
+
+            const bookingElement = document.querySelector(`.event[data-booking-id="${bookingId}"]`);
+            if (bookingElement) {
+                const title = bookingElement.querySelector('.title').textContent;
+                const [startTime, endTime] = bookingElement.querySelector('.time').textContent.split(' - ');
+                const client = bookingElement.querySelector('.client').textContent;
+                const dateStr = bookingElement.parentElement.parentElement.getAttribute('data-date');
+                const date = new Date(dateStr);
+                const days = ['nie', 'pon', 'wto', 'śro', 'czw', 'pią', 'sob'];
+                const dayOfWeek = days[date.getDay()];
+                const day = date.getDate();
+                const months = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+                const month = months[date.getMonth()];
+                const bookingData = bookingsData.find(b => b.id === bookingId);
+
+                if (managementTime) managementTime.textContent = startTime;
+                if (managementDate) managementDate.textContent = `⋅ ${dayOfWeek}, ${day} ${month}`;
+                if (managementClient) managementClient.textContent = client;
+                if (managementService) managementService.textContent = title;
+                if (managementPrice && bookingData && bookingData.service?.price) managementPrice.textContent = `${bookingData.service.price.toFixed(2)} zł`;
+                if (managementTimeSpan) managementTimeSpan.textContent = `${startTime} - ${endTime}`;
+
+                details.setAttribute('data-booking-id', bookingId);
+
+                calendarContainer.style.display = 'none';
+                details.style.display = 'block';
+            } else {
+                console.error(`Nie znaleziono elementu dla bookingId: ${bookingId}`);
+            }
+        }
+
+        function hideBookingDetails() {
+            const calendarContainer = document.getElementById('calendar-container');
+            const details = document.getElementById('booking-details');
+            calendarContainer.style.display = 'flex';
+            details.style.display = 'none';
+            details.removeAttribute('data-booking-id');
+        }
+
+        function cancelBooking() {
+            const bookingId = document.querySelector('#booking-details')?.getAttribute('data-booking-id');
+            if (!bookingId) {
+                return;
+            }
+            const formData = new FormData();
+            formData.append('bookingId', bookingId);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch('/CompanyView?handler=CancelBooking', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(`HTTP error! status: ${response.status}, message: ${text}`); });
+                }
+                location.reload();
+            })
+            .catch(error => console.error('Błąd przy usuwaniu wizyty:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', updateCalendar);
+    </script>
+}
+
+<style>
+    :root {
+        --numDays: 7;
+        --numHours: 7;
+        --timeHeight: 3.9px;
+        --calBgColor: #efefef;
+        --eventBorderColor: #d8d8d8;
+        --eventColor: #d1ffe6;
+        --eventMaxHeight: 120px;
+    }
+
+    .main-container {
+        width: 100%;
+        height: 82.5vh;
+        margin: auto;
+        background-image: url('/images/sign_in_up_background2.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main-content {
+        width: 100%;
+        flex-grow: 1;
+        margin: 0;
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        position: relative;
+    }
+
+    .calendar-container {
+        background-color: #fff;
+        width: 900px;
+        padding: 0.5rem 2rem 1.5rem 2rem;
+        margin: 0 auto;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .calendar-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 1rem auto 1rem auto;
+        flex-shrink: 0;
+        font-family: 'Montserrat-Bold';
+    }
+
+    .calendar-header button {
+        font-size: 1.25rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        margin: 0 1rem;
+    }
+
+    .calendar-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .calendar {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: auto 1fr;
+        margin: 0;
+        flex-grow: 1;
+        min-height: 0;
+    }
+
+    .timeline {
+        display: grid;
+        grid-template-rows: repeat(84, var(--timeHeight));
+        align-content: stretch;
+        padding: 0;
+        margin: 25px 0 0 0;
+        max-height: 100%;
+    }
+
+    .time-marker {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+        height: 100%;
+    }
+
+    .days {
+        display: grid;
+        grid-column: 2;
+        gap: 5px;
+        grid-template-columns: repeat(var(--numDays), 1fr);
+        min-height: 0;
+    }
+
+    .events {
+        display: grid;
+        grid-template-rows: repeat(84, var(--timeHeight));
+        border-radius: 5px;
+        background: var(--calBgColor);
+        align-content: stretch;
+        padding: 0;
+        margin: 0;
+        max-height: 100%;
+    }
+
+    .event {
+        border: 1px solid var(--eventBorderColor);
+        border-radius: 5px;
+        padding: 0;
+        margin: auto;
+        background: var(--eventColor);
+        cursor: pointer;
+        max-height: var(--eventMaxHeight);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #579966 transparent;
+    }
+
+    .event::-webkit-scrollbar {
+        width: 2px;
+    }
+
+    .event::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .event::-webkit-scrollbar-thumb {
+        background-color: #579966;
+        border-radius: 10px;
+    }
+
+    .event::-webkit-scrollbar-thumb:hover {
+        background-color: #3d864e;
+    }
+
+    .title {
+        font-size: 0.5rem;
+        font-weight: 600;
+        margin: 1px 3px 2px 3px;
+    }
+
+    .time, .client {
+        font-size: 0.4rem;
+        margin: 1px 3px;
+    }
+
+    .date {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1em;
+        height: 25px;
+    }
+
+    .date-num {
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: inline;
+    }
+
+    .date-day {
+        display: inline;
+        font-size: 1.25rem;
+        font-weight: 100;
+    }
+
+    .booking-details {
+        width: 550px;
+        padding: 2rem 2.5rem 2rem 2.5rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        text-align: center;
+    }
+
+    .management-header {
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    .go-back {
+        background: transparent;
+        border: none;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        padding-bottom: 5px;
+        height: 20px;
+        width: 35px;
+        font-size: 1.5rem;
+        color: #000;
+        cursor: pointer;
+    }
+
+    .go-back:hover {
+        color: #333;
+    }
+
+    .management-date-time {
+        display: flex;
+        align-items: center;
+        width: auto;
+        padding-left: 5px;
+        gap: 5px;
+    }
+
+    .management-client {
+        text-align: left;
+        font-size: 0.85rem;
+        font-family: 'Montserrat-Light';
+        margin-top: 50px;
+    }
+
+    .management-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        height: 70px;
+        margin: 5px 0 40px 0;
+        padding: 0;
+        font-size: 0.8rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .management-price-time {
+        text-align: center;
+        width: auto;
+    }
+
+    #management-price {
+        font-size: 0.85rem;
+        font-family: 'Montserrat-Medium';
+        margin-bottom: 5px;
+    }
+
+    #management-time-span {
+        font-size: 0.6rem;
+        font-family: 'Montserrat-Light';
+    }
+
+    .cancel-button {
+        padding: auto 10px;
+        font-size: 0.75rem;
+        font-family: 'Montserrat-Bold';
+        border-radius: 5px;
+        background-color: white;
+        border: 1px solid #710000;
+        color: #710000;
+        cursor: pointer;
+        width: 100%;
+        height: 30px;
+        margin: 0 auto;
+    }
+
+    .cancel-button:hover {
+        background-color: #710000;
+        border: #710000;
+        color: #fff;
+    }
+
+    .custom-header {
+        padding: 10px;
+        height: 55px;
+        border-bottom: 2px solid #000;
+        position: relative;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        margin-top: 3.5px;
+    }
+
+    .nav-item.center {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo {
+        height: 28px;
+        width: auto;
+    }
+
+    .nav-item.right {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-icon {
+        width: 26px;
+        height: 26px;
+        margin: 0 10px 2px 0;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: -20px;
+        color: #000;
+        min-width: 150px;
+        height: 83px;
+        z-index: 1001;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px 0;
+        text-decoration: none;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    .dropdown-menu a {
+        color: #000;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        line-height: 15px;
+        font-size: 14px;
+    }
+
+    .sign.my-account {
+        border-bottom: #606060 1px solid;
+    }
+
+    .sign:hover {
+        font-weight: 900;
+        transform: scale(1.1);
+        animation: skew-x-shake 2s infinite;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    @@keyframes skew-x-shake {
+        0% { transform: skewX(-10deg); }
+        5% { transform: skewX(10deg); }
+        10% { transform: skewX(-10deg); }
+        15% { transform: skewX(10deg); }
+        20% { transform: skewX(0deg); }
+        100% { transform: skewX(0deg); }
+    }
+
+    .footer {
+        bottom: 0;
+        display: none;
+        z-index: 1000;
+        min-height: 20px;
+        padding: 0;
+        border-top: #000 solid 2px;
+    }
+
+    .footer.visible {
+        display: block;
+        position: relative;
+        margin-top: 0;
+    }
+
+    .author {
+        position: relative;
+        top: 50%;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .author p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 2.5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        z-index: 1001;
+    }
+
+    .author:hover .tooltip {
+        display: block;
+    }
+</style>
